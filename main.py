@@ -1,6 +1,6 @@
 import sys
 
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtWidgets
 
 from src.MainWidget import MainWidget
 
@@ -13,7 +13,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setGeometry(0, 0, 800, 480)
 
         self._wdg_main = MainWidget()
-        self.btn = QtWidgets.QPushButton('Click me')
         self.setCentralWidget(self._wdg_main)
 
 

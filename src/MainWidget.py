@@ -23,11 +23,11 @@ class MainWidget(QtWidgets.QWidget):
 
         self._csv_file_tabs = []
 
-    def load_csv_file(self, path):
+    def load_csv_file(self, path, params):
         new_area = CsvFileArea()
         file_name = get_file_name_from_path(path)
 
-        success, error = new_area.load_csv_file(path)
+        success, error = new_area.load_csv_file(path, params)
         if success:
             self._csv_file_tabs.append(new_area)
             self._tab_main.addTab(new_area, file_name)
