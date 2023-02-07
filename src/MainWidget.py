@@ -1,10 +1,12 @@
 from PySide6 import QtWidgets, QtCore
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 from src.CsvFileArea.CsvFileArea import CsvFileArea
+from src.Communicate.Communicate import GlobalCommunicator
 
 from src.utils.utils import get_file_name_from_path
-from src.utils.settings import CsvFileSources
+from src.utils.settings import CsvFileSources, PlotStyleSettings
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -13,6 +15,10 @@ class MainWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
 
         plt.ion()
+        #print(str(mpl.rcParams))
+        #plt.style.use('seaborn-v0_8-paper')
+        #print(str(mpl.rcParams))
+        plt.rcParams.update(PlotStyleSettings)
 
         self._lyt_main = QtWidgets.QVBoxLayout(self)
         self._tab_main = QtWidgets.QTabWidget()
@@ -59,6 +65,7 @@ class MainWidget(QtWidgets.QWidget):
 
         self._wdg_status_line = QtWidgets.QLabel('Status')
         self._lyt_main.addWidget(self._wdg_status_line)
+        GlobalCommunicator.change_status_line.connect(self._wdg_status_line.setText)
 
         self._csv_file_tabs = []
         self._open_csv_files = []
@@ -67,24 +74,23 @@ class MainWidget(QtWidgets.QWidget):
     def load_csv_file(self):
         file_name = get_file_name_from_path(self._csv_file_path)
         if self._csv_file_path in self._open_csv_files:
-            self._wdg_status_line.setText(f'File {file_name} is already open')
+            GlobalCommunicator.change_status_line.emit(f'File {file_name} is already open')
             return
         
         if self._cmb_csv_source.currentText() == CsvFileSources['STEAM_IQ']:
             new_area = CsvFileArea(plt)
         else:
-            self._wdg_status_line.setText(f'No template for such source')
+            GlobalCommunicator.change_status_line.emit(f'No template for such source')
             return
         params = {'date_col_name': self._ltx_date_idx_col_name.text(), 
                   'col_sep': self._cmb_col_sep.currentText()}
-        success, error = new_area.load_csv_file(self._csv_file_path, params)
+        success = new_area.load_csv_file(self._csv_file_path, params)
         if success:
             self._csv_file_tabs.append(new_area)
             self._open_csv_files.append(self._csv_file_path)
             self._tab_main.addTab(new_area, file_name)
-            self._wdg_status_line.setText(f'File {file_name} loaded')
+            
         else:
-            self._wdg_status_line.setText(f'File loading failed, {error}')
             del new_area
     
     @QtCore.Slot()

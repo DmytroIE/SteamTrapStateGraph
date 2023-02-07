@@ -2,8 +2,11 @@ from PySide6 import QtCore, QtWidgets
 
 import pandas as pd
 
+from src.Communicate.Communicate import GlobalCommunicator
+
 from src.utils.utils import get_file_name_from_path
-from src.utils.settings import ResampOperations
+from src.utils.settings import ResampOperations,YAxisLimits
+
 
 class CsvFileArea(QtWidgets.QWidget):
     def __init__(self, plt):
@@ -17,9 +20,9 @@ class CsvFileArea(QtWidgets.QWidget):
         self._lbl_averaging_options = QtWidgets.QLabel('Averaging options')
         self._cmb_averaging_options = QtWidgets.QComboBox()
         self._cmb_averaging_options.addItems(ResampOperations.values())
-        self._lbl_averaging_period = QtWidgets.QLabel('Seconds of averaging')
+        self._lbl_averaging_period = QtWidgets.QLabel('Hours of averaging')
         self._spb_averaging_period = QtWidgets.QSpinBox()
-        self._spb_averaging_period.setRange(1, 36000)
+        self._spb_averaging_period.setRange(1, 24)
         self._lyt_averaging = QtWidgets.QHBoxLayout()
         self._lyt_averaging.addWidget(self._lbl_averaging_options)
         self._lyt_averaging.addWidget(self._cmb_averaging_options)
@@ -62,7 +65,8 @@ class CsvFileArea(QtWidgets.QWidget):
 
         self._data = None
         self._plt = plt
-        
+
+       
     def load_csv_file(self, path, params):
         try:
             date_col_name = params['date_col_name']
@@ -86,11 +90,12 @@ class CsvFileArea(QtWidgets.QWidget):
 
             col_names = [col_name for col_name in self._data.columns]
             self._cmb_column_to_plot.addItems(col_names)
-
-            return True, None
+            GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
+            return True
         except Exception as error:
             self._data = None
-            return False, str(error)
+            GlobalCommunicator.change_status_line.emit(f'File loading failed, {error}')
+            return False
         
     @QtCore.Slot()
     def _plot_graph(self):
@@ -107,23 +112,42 @@ class CsvFileArea(QtWidgets.QWidget):
         plot_data = plot_data[col_to_plot]
 
         if averaging_method == ResampOperations['MEAN']:
-            plot_data = plot_data.resample(f'{aver_period}s', origin='start').mean().ffill()
+            plot_data = plot_data.resample(f'{aver_period}h', origin='start').mean()#.fillna(0) #, offset='-5m'
 
         self._txt_csv_view.setText(str(plot_data))
         # plot_data.info()
+        
         if len(self._plt.get_fignums())<1:
-            fig, axs = self._plt.subplots(figsize=(12, 4))
+            fig, axs = self._plt.subplots(figsize=(14, 4))
         else:
             self._plt.cla()
             fig = self._plt.gcf()
             axs = self._plt.gca()
-
-        plot_data.plot.area(ax=axs)
-        if y_axis_name:
-            axs.set_ylabel(y_axis_name)
-        else:
-            axs.set_ylabel(col_to_plot)
-        axs.set_title(self._file_name)
+        try:
+            #index = pd.DatetimeIndex(['2014-06-04 14:56:33',
+            #                          '2014-06-04 15:56:33', 
+            #                          '2014-06-04 16:56:33',
+            #              '2014-06-04 17:56:33', 
+            #              '2014-06-04 18:56:33', 
+            #              '2014-06-04 19:56:33',
+            #              '2014-06-04 20:56:33'])
+            #data = pd.Series(data=[1.2,3.555,6.178,9.369,7.14,3.72,6.05], index=index)
+            #print(data.head())
+            #data.plot(ax = axs)
+            #print(plot_data.head())
+            plot_data.plot(ax = axs)
+            
+            if y_axis_name:
+                axs.set_ylabel(y_axis_name)
+            else:
+                axs.set_ylabel(col_to_plot)
+            axs.set_title(self._file_name)
+            axs.set_ylim(YAxisLimits)
+            axs.fill_between(plot_data.index, y1=plot_data, label='aaa', alpha=0.5, color='tab:green', linewidth=2)
+        except Exception as error:
+            print(str(error))
+            GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
+            print(str(error))
 
 
     @QtCore.Slot()
