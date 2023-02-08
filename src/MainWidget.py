@@ -36,7 +36,7 @@ class MainWidget(QtWidgets.QWidget):
         self._cmb_col_sep.addItems([';', ':', 'Tab', ','])
         self._lbl_csv_source = QtWidgets.QLabel('CSV Source')
         self._cmb_csv_source = QtWidgets.QComboBox()
-        self._cmb_csv_source.addItems(CsvFileSources.values())
+        self._cmb_csv_source.addItems(CsvFileSources)
         self._lyt_import_options = QtWidgets.QHBoxLayout()
         self._lyt_import_options.addWidget(self._lbl_date_idx_col_name)
         self._lyt_import_options.addWidget(self._ltx_date_idx_col_name)
@@ -73,11 +73,12 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def load_csv_file(self):
         file_name = get_file_name_from_path(self._csv_file_path)
+        
         if self._csv_file_path in self._open_csv_files:
             GlobalCommunicator.change_status_line.emit(f'File {file_name} is already open')
             return
         
-        if self._cmb_csv_source.currentText() == CsvFileSources['STEAM_IQ']:
+        if self._cmb_csv_source.currentText() == CsvFileSources.SteamIQ:
             new_area = CsvFileArea(plt)
         else:
             GlobalCommunicator.change_status_line.emit(f'No template for such source')
@@ -96,6 +97,8 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def preview_csv_file(self):
         self._csv_file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', "/home", 'CSV files (*.csv);;All files (*)')
+        if not self._csv_file_path:
+            return
         csv_preview = ''
         try:
             with open(self._csv_file_path, "r") as csvFile:

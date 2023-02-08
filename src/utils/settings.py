@@ -1,17 +1,34 @@
-CsvFileSources = {
-    'STEAM_IQ':'SteamIQ'
-}
+from cycler import cycler
+from enum import Enum
 
-ResampOperations ={
-    'NONE':'None',
-    'MEAN':'Mean'
-}
+
+class CsvFileSources(str, Enum):
+    SteamIQ = 'SteamIQ'
+
+class ResampOperations(str, Enum):
+    NoResample = 'No resample'
+    Mean = 'Mean'
+
+#print(ResampOperations)
+#print(dir(ResampOperations))
+#print(list(ResampOperations))
+#print(ResampOperations.__members__.keys())
+
+class LineColors(str, Enum):
+    Orange = 'tab:orange'
+    Cyan = 'tab:cyan'
+
+    # @classmethod
+    # def keys(cls):
+    #     return cls.__members__.keys()
+
 
 PlotStyleSettings = {
-'axes.edgecolor': 'white',
+'axes.edgecolor': 'grey',
 'axes.facecolor': 'black',
 'axes.labelcolor': 'white',
-#'axes.prop_cycle': cycler('color', ['#8dd3c7', '#feffb3', '#bfbbd9', '#fa8174', '#81b1d2', '#fdb462', '#b3de69', '#bc82bd', '#ccebc4', '#ffed6f']),
+'axes.grid': 'True',
+'axes.prop_cycle': cycler('color', [LineColors['Orange']]),
 'boxplot.boxprops.color': 'white',
 'boxplot.capprops.color': 'white',
 'boxplot.flierprops.color': 'white',
@@ -19,9 +36,14 @@ PlotStyleSettings = {
 'boxplot.whiskerprops.color': 'white',
 'figure.edgecolor': 'black',
 'figure.facecolor': 'black',
-'grid.color': 'white',
-'lines.color': 'white',
+'grid.color': 'grey',
+'grid.alpha': 0.5,
+'grid.linewidth': 0.8,
+'lines.color': 'C0', # has no affect on plot(); see axes.prop_cycle
+'lines.linestyle': '-',
+'lines.linewidth': 2.0,
 'patch.edgecolor': 'white',
+'savefig.dpi': 150,
 'savefig.edgecolor': 'black',
 'savefig.facecolor': 'black',
 'text.color': 'white',
