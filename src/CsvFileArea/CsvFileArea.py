@@ -5,114 +5,26 @@ import numpy as np
 
 from src.Communicate.Communicate import GlobalCommunicator
 
-from src.utils.utils import get_file_name_from_path, calc_integral_with_nans
-from src.utils.settings import ResampOperations, LineColors
+from src.utils.utils import get_file_name_from_path, calc_integral
+from src.utils.settings import ResampOperations
+
+from src.CsvFileArea.IndPlotSettings import IndPlotSettings
+from src.CsvFileArea.SteamIqPlotSettings import SteamIqPlotSettings
 
 
 class CsvFileArea(QtWidgets.QWidget):
     def __init__(self, plt):
         QtWidgets.QWidget.__init__(self)
 
-        self._gbx_options = QtWidgets.QGroupBox()
-        self._gbx_options.setTitle('Draw options')
-
-        self._txt_csv_view = QtWidgets.QTextBrowser()
-
-        self._lbl_averaging_options = QtWidgets.QLabel('Averaging options')
-        self._cmb_averaging_options = QtWidgets.QComboBox()
-        self._cmb_averaging_options.addItems(ResampOperations)
-        self._lbl_averaging_period = QtWidgets.QLabel('Hours of averaging')
-        self._spb_averaging_period = QtWidgets.QSpinBox()
-        self._spb_averaging_period.setRange(1, 24)
-        self._lyt_averaging = QtWidgets.QHBoxLayout()
-        self._lyt_averaging.addWidget(self._lbl_averaging_options)
-        self._lyt_averaging.addWidget(self._cmb_averaging_options)
-        self._lyt_averaging.addWidget(self._lbl_averaging_period)
-        self._lyt_averaging.addWidget(self._spb_averaging_period)
-
-        self._lbl_plot_from = QtWidgets.QLabel('From date/time')
-        self._dt_plot_from = QtWidgets.QDateTimeEdit()
-        self._lbl_plot_to = QtWidgets.QLabel('To date/time')
-        self._dt_plot_to = QtWidgets.QDateTimeEdit()
-        self._lyt_dt_limits = QtWidgets.QHBoxLayout()
-        self._lyt_dt_limits.addWidget(self._lbl_plot_from)
-        self._lyt_dt_limits.addWidget(self._dt_plot_from)
-        self._lyt_dt_limits.addWidget(self._lbl_plot_to)
-        self._lyt_dt_limits.addWidget(self._dt_plot_to)
-
-        self._lbl_column_to_plot = QtWidgets.QLabel('Plot column')
-        self._cmb_column_to_plot = QtWidgets.QComboBox()
-        self._lbl_y_label = QtWidgets.QLabel('Y Axis name')
-        self._ltx_y_label = QtWidgets.QLineEdit()
-        self._lbl_line_color = QtWidgets.QLabel('Line color')
-        self._cmb_line_color = QtWidgets.QComboBox()
-        self._cmb_line_color.addItems(LineColors)
-        self._cmb_column_to_plot.currentTextChanged.connect(self._ltx_y_label.setText)
-        self._lyt_plot_opts_one = QtWidgets.QHBoxLayout()
-        self._lyt_plot_opts_one.addWidget(self._lbl_column_to_plot)
-        self._lyt_plot_opts_one.addWidget(self._cmb_column_to_plot)
-        self._lyt_plot_opts_one.addWidget(self._lbl_y_label)
-        self._lyt_plot_opts_one.addWidget(self._ltx_y_label)
-        self._lyt_plot_opts_one.addWidget(self._lbl_line_color)
-        self._lyt_plot_opts_one.addWidget(self._cmb_line_color)
-
-
-        self._lbl_y_axis_from = QtWidgets.QLabel('Y axis start')
-        self._spb_y_axis_from = QtWidgets.QSpinBox()
-        self._spb_y_axis_from.setRange(-5, 100)
-        self._spb_y_axis_from.setValue(0)
-        self._lbl_y_axis_to = QtWidgets.QLabel('Y axis end')
-        self._spb_y_axis_to = QtWidgets.QSpinBox()
-        self._spb_y_axis_to.setRange(0, 100)
-        self._spb_y_axis_to.setValue(50)
-        self._lyt_plot_opts_two = QtWidgets.QHBoxLayout()
-        self._lyt_plot_opts_two.addWidget(self._lbl_y_axis_from)
-        self._lyt_plot_opts_two.addWidget(self._spb_y_axis_from)
-        self._lyt_plot_opts_two.addWidget(self._lbl_y_axis_to)
-        self._lyt_plot_opts_two.addWidget(self._spb_y_axis_to)
-
-
-        self._options_layout = QtWidgets.QVBoxLayout(self._gbx_options)
-        self._options_layout.addLayout(self._lyt_averaging)
-        self._options_layout.addLayout(self._lyt_dt_limits)
-        self._options_layout.addLayout(self._lyt_plot_opts_one)
-        self._options_layout.addLayout(self._lyt_plot_opts_two)
-
-        self._btn_plot_graph = QtWidgets.QPushButton('Plot graph')
-        self._btn_plot_graph.clicked.connect(self._plot_graph)
-
-        self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.addWidget(self._txt_csv_view)
-        self._layout.addWidget(self._gbx_options)
-        self._layout.addWidget(self._btn_plot_graph)
-
+        self._lyt_main = QtWidgets.QVBoxLayout(self)
         self._data = None
         self._plt = plt
 
        
     def load_csv_file(self, path, params):
         try:
-            date_col_name = params['date_col_name']
-            col_sep = params['col_sep']
-            if col_sep == 'Tab':
-                col_sep = '\t' 
-            
-            self._data = pd.read_csv(path, sep=col_sep, header=0, parse_dates=[date_col_name], index_col=date_col_name)
-            self._file_name = get_file_name_from_path(path)
-            self._txt_csv_view.setText(str(self._data))
-
-            dfrom = self._data.index[0]
-            datetime_from = QtCore.QDateTime(dfrom.year, dfrom.month, dfrom.day, dfrom.hour, dfrom.minute, dfrom.second)
-            self._dt_plot_from.setDateTime(datetime_from)
-            self._dt_plot_from.setMinimumDateTime(datetime_from)
-
-            dto = self._data.index[-1]
-            datetime_to = QtCore.QDateTime(dto.year, dto.month, dto.day, dto.hour, dto.minute, dto.second)
-            self._dt_plot_to.setDateTime(datetime_to)
-            self._dt_plot_to.setMaximumDateTime(datetime_to)
-
-            col_names = [col_name for col_name in self._data.columns]
-            self._cmb_column_to_plot.addItems(col_names)
+            self._load_csv_file(path, params)
+            self._create_ui()
             GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
             return True
         except Exception as error:
@@ -163,8 +75,9 @@ class CsvFileArea(QtWidgets.QWidget):
             axs.set_ylim(y_axis_limits)
             axs.fill_between(plot_data.index, y1=plot_data, alpha=0.4, color=self._cmb_line_color.currentText(), linewidth=2)
 
-            integr, time_diff = calc_integral_with_nans(plot_data)
-            if integr and time_diff:
+            result = calc_integral(plot_data)
+            if result:
+                integr, time_diff = result
                 mean_integr_value = integr/time_diff
                 #print(f'Numpy integr={integr}')
                 #print(f'time diff={time_diff}')
@@ -180,4 +93,87 @@ class CsvFileArea(QtWidgets.QWidget):
             print(str(error))
             GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
             print(str(error))
+
+    def _load_csv_file(self, path, params):
+        raise NotImplementedError
+
+
+    def _create_ui(self):
+
+        self._txt_csv_view = QtWidgets.QTextBrowser()
+        self._txt_csv_view.setText(str(self._data))
+        #-Draw options-----------------------------
+        gbx_options = QtWidgets.QGroupBox()
+        gbx_options.setTitle('Draw options')
+        #---------------Resample------------------
+        lbl_averaging_options = QtWidgets.QLabel('Averaging options')
+        self._cmb_averaging_options = QtWidgets.QComboBox()
+        self._cmb_averaging_options.addItems(ResampOperations)
+        self._cmb_averaging_options.setCurrentText(ResampOperations.Mean)
+        lbl_averaging_period = QtWidgets.QLabel('Hours of averaging')
+        self._spb_averaging_period = QtWidgets.QSpinBox()
+        self._spb_averaging_period.setRange(1, 24)
+        lbl_averaging_offset = QtWidgets.QLabel('Offset, min')
+        self._spb_averaging_offset = QtWidgets.QSpinBox()
+        self._spb_averaging_offset.setRange(-60, 60)
+        self._spb_averaging_offset.setValue(0)
+        lyt_averaging = QtWidgets.QHBoxLayout()
+        lyt_averaging.addWidget(lbl_averaging_options)
+        lyt_averaging.addWidget(self._cmb_averaging_options)
+        lyt_averaging.addWidget(lbl_averaging_period)
+        lyt_averaging.addWidget(self._spb_averaging_period)
+        lyt_averaging.addWidget(lbl_averaging_offset)
+        lyt_averaging.addWidget(self._spb_averaging_offset)
+        #---------------Plot From/To------------------
+        lbl_plot_from = QtWidgets.QLabel('From date/time')
+        self._dt_plot_from = QtWidgets.QDateTimeEdit()
+        lbl_plot_to = QtWidgets.QLabel('To date/time')
+        self._dt_plot_to = QtWidgets.QDateTimeEdit()
+
+        dfrom = self._data.index[0]
+        datetime_from = QtCore.QDateTime(dfrom.year, dfrom.month, dfrom.day, dfrom.hour, dfrom.minute, dfrom.second)
+        self._dt_plot_from.setDateTime(datetime_from)
+        self._dt_plot_from.setMinimumDateTime(datetime_from)
+
+        dto = self._data.index[-1]
+        datetime_to = QtCore.QDateTime(dto.year, dto.month, dto.day, dto.hour, dto.minute, dto.second)
+        self._dt_plot_to.setDateTime(datetime_to)
+        self._dt_plot_to.setMaximumDateTime(datetime_to)
+
+        lyt_dt_limits = QtWidgets.QHBoxLayout()
+        lyt_dt_limits.addWidget(lbl_plot_from)
+        lyt_dt_limits.addWidget(self._dt_plot_from)
+        lyt_dt_limits.addWidget(lbl_plot_to)
+        lyt_dt_limits.addWidget(self._dt_plot_to)
+
+        options_layout = QtWidgets.QVBoxLayout(gbx_options)
+        options_layout.addLayout(lyt_averaging)
+        options_layout.addLayout(lyt_dt_limits)
+
+        #-Scroll parameter area (empty)-----------
+        gbx_parameters = QtWidgets.QGroupBox()
+        gbx_parameters.setTitle('Parameters')
+
+        self._lyt_params_area = QtWidgets.QVBoxLayout(gbx_parameters)
+        self._param_widgets_map = {}
+
+        self._fill_params_area() # virtual function, must be implemented in
+
+        scr_params_area = QtWidgets.QScrollArea()
+        scr_params_area.setWidget(gbx_parameters)
+        scr_params_area.setWidgetResizable(True)
+        
+        #-Plot button-----------------------------
+        self._btn_plot_graph = QtWidgets.QPushButton('Plot graph')
+        self._btn_plot_graph.clicked.connect(self._plot_graph)
+
+        #-Adding to the main layout-----------------------------
+        self._lyt_main.addWidget(self._txt_csv_view)
+        self._lyt_main.addWidget(gbx_options)
+        self._lyt_main.addWidget(scr_params_area)
+        self._lyt_main.addWidget(self._btn_plot_graph)
+
+    def _fill_params_area(self):
+        raise NotImplementedError
+
 

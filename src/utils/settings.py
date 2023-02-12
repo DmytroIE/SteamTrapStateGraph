@@ -4,10 +4,17 @@ from enum import Enum
 
 class CsvFileSources(str, Enum):
     SteamIQ = 'SteamIQ'
+    iLoop = 'iLoop'
 
 class ResampOperations(str, Enum):
     NoResample = 'No resample'
     Mean = 'Mean'
+
+class LeakUnits(str, Enum):
+    Percent = 'Percent'
+    Mass = 'Mass'
+    Energy = 'Energy'
+
 
 #print(ResampOperations)
 #print(dir(ResampOperations))
@@ -22,13 +29,18 @@ class LineColors(str, Enum):
     # def keys(cls):
     #     return cls.__members__.keys()
 
+line_colors_map = {
+    'Orange': 'tab:orange',
+    'Cyan': 'tab:cyan',
+    'Green': 'tab:green',
+}
 
 PlotStyleSettings = {
 'axes.edgecolor': 'grey',
 'axes.facecolor': 'black',
 'axes.labelcolor': 'white',
 'axes.grid': 'True',
-'axes.prop_cycle': cycler('color', [LineColors['Orange']]),
+'axes.prop_cycle': cycler('color', line_colors_map.values()),
 'boxplot.boxprops.color': 'white',
 'boxplot.capprops.color': 'white',
 'boxplot.flierprops.color': 'white',
