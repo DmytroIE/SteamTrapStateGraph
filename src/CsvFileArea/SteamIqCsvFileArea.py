@@ -12,17 +12,19 @@ from src.CsvFileArea.CsvFileArea import CsvFileArea
 from src.CsvFileArea.IndPlotSettings import IndPlotSettings
 from src.CsvFileArea.SteamIqPlotSettings import SteamIqPlotSettings
 
+from src.utils.settings import LineColors, line_colors_map
+
 
 class SteamIqCsvFileArea(CsvFileArea):
     def __init__(self, plt):
         CsvFileArea.__init__(self, plt)
 
     def _fill_params_area(self):
-        wdg_leak = SteamIqPlotSettings(self._data, self._leak_col_name, self._cycle_col_name)
+        wdg_leak = SteamIqPlotSettings(self._data, self._leak_col_name, self._cycle_col_name, LineColors.Cyan, True)
         self._lyt_params_area.addWidget(wdg_leak)
         self._param_widgets_map[self._leak_col_name] = wdg_leak
 
-        wdg_cycle = IndPlotSettings(self._data, self._cycle_col_name)
+        wdg_cycle = IndPlotSettings(self._data, self._cycle_col_name, LineColors.Green, False)
         self._lyt_params_area.addWidget(wdg_cycle)
         self._param_widgets_map[self._cycle_col_name] = wdg_cycle
         

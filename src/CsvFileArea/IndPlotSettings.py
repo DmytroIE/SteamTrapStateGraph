@@ -1,22 +1,28 @@
 from PySide6 import QtWidgets
 
-from src.utils.utils import split_one_series_by_sb, resample_series, calc_integral
-from src.utils.settings import line_colors_map
+from src.Communicate.Communicate import GlobalCommunicator
+
+from src.utils.utils import split_one_series_by_sb, resample_series, calc_integral, convert_sbs_to_pd_format
+from src.utils.settings import LineColors, line_colors_map
 
 
 
 class IndPlotSettings(QtWidgets.QGroupBox):
-    def __init__(self, df, col_name):
+    def __init__(self, df, col_name, def_color=LineColors.Orange, def_is_plotted=False):
         QtWidgets.QGroupBox.__init__(self)
         self._df = df
         self._col_name = col_name
 
         self.setTitle(self._col_name)
         self._lyt_main = QtWidgets.QVBoxLayout(self)
-        self._create_ui()
+        self._create_ui(def_color, def_is_plotted)
 
     def _prepare_plot_data(self, resample_options, service_breaks):
-        srs = self._extract_series_from_df()
+        srs = self._extract_series_from_df(resample_options['plot_from'], resample_options['plot_to'])
+        srs = self._convert_series(srs)
+        service_breaks.sort()
+        service_breaks = convert_sbs_to_pd_format(service_breaks)
+            
         srs_list = split_one_series_by_sb(srs, service_breaks)
         srs_list = resample_series(srs_list, resample_options)
 
@@ -31,34 +37,51 @@ class IndPlotSettings(QtWidgets.QGroupBox):
 
 
     def plot(self, ax, resample_options, service_breaks):
+        if not self._cbx_is_plotted.isChecked():
+            return
+        try:
+            srs_list = self._prepare_plot_data(resample_options, service_breaks)
 
-        srs_list = self._prepare_plot_data(resample_options, service_breaks)
+            y_axis_name = self._ltx_y_label.text()
+            color = line_colors_map[self._cmb_line_color.currentText()]
 
-        y_axis_name = self._ltx_y_label.text()
-        color = self._cmb_line_color.currentText()
+            for srs in srs_list:
+                #print(srs)
+                srs.plot(ax = ax, color=color, label = y_axis_name)
 
-        for srs in srs_list:
-            print(srs)
-            srs.plot(ax = ax, color=color, label = y_axis_name)
-            
-        if y_axis_name:
-            ax.set_ylabel(y_axis_name)
+            if y_axis_name:
+                ax.set_ylabel(y_axis_name)
+            else:
+                ax.set_ylabel(self._col_name)
+
+            y_axis_limits = [self._spb_y_axis_from.value(), self._spb_y_axis_to.value()]
+            ax.set_ylim(y_axis_limits)
+            ax.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
+
+            #--service break line
+            if len(service_breaks) > 0:
+                for sb in service_breaks:
+                    ax.axvline(sb, ls='--', color='tab:cyan', label = f'Service break {sb}')
+        except Exception as error:
+            GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
+
+
+    def _extract_series_from_df(self, plot_from, plot_to):
+        if plot_from < plot_to:
+            srs = self._df[self._col_name]
+            return srs[(srs.index>=plot_from)&(srs.index<=plot_to)]
         else:
-            ax.set_ylabel(self._col_name)
+            raise ValueError('Mismatch in the plot dates')
+    
+    def _convert_series(self, srs):
+        return srs #in the most simple case no conversion is made
 
-        y_axis_limits = [self._spb_y_axis_from.value(), self._spb_y_axis_to.value()]
-        ax.set_ylim(y_axis_limits)
-        ax.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
-
-
-    def _extract_series_from_df(self):
-        return self._df[self._col_name]
-
-    def _create_ui(self):
+    def _create_ui(self, def_color, def_if_plotted):
         
         #---------------------Row 1---------------------------
         lbl_is_plotted = QtWidgets.QLabel('Plot')
         self._cbx_is_plotted = QtWidgets.QCheckBox()
+        self._cbx_is_plotted.setChecked(def_if_plotted)
         lbl_y_label = QtWidgets.QLabel('Y Axis name')
         self._ltx_y_label = QtWidgets.QLineEdit()
         self._ltx_y_label.setText(self._col_name)
@@ -85,7 +108,8 @@ class IndPlotSettings(QtWidgets.QGroupBox):
         self._spb_y_axis_to.setValue(50)
         lbl_line_color = QtWidgets.QLabel('Line color')
         self._cmb_line_color = QtWidgets.QComboBox()
-        self._cmb_line_color.addItems(line_colors_map.keys())
+        self._cmb_line_color.addItems(LineColors)
+        self._cmb_line_color.setCurrentText(def_color)
         lyt_opts_two = QtWidgets.QHBoxLayout()
         lyt_opts_two.addWidget(lbl_y_axis_from)
         lyt_opts_two.addWidget(self._spb_y_axis_from)

@@ -15,6 +15,11 @@ class LeakUnits(str, Enum):
     Mass = 'Mass'
     Energy = 'Energy'
 
+leak_units_symbol_map = {
+    LeakUnits.Percent: '%',
+    LeakUnits.Mass: 'kg/h',
+    LeakUnits.Energy: 'kWh'
+}
 
 #print(ResampOperations)
 #print(dir(ResampOperations))
@@ -22,17 +27,24 @@ class LeakUnits(str, Enum):
 #print(ResampOperations.__members__.keys())
 
 class LineColors(str, Enum):
-    Orange = 'tab:orange'
-    Cyan = 'tab:cyan'
+    Orange = 'Orange'
+    Cyan = 'Cyan'
+    Green = 'Green'
 
     # @classmethod
     # def keys(cls):
     #     return cls.__members__.keys()
 
+# line_colors_map = {
+#     'Orange': 'tab:orange',
+#     'Cyan': 'tab:cyan',
+#     'Green': 'tab:green',
+# }
+
 line_colors_map = {
-    'Orange': 'tab:orange',
-    'Cyan': 'tab:cyan',
-    'Green': 'tab:green',
+    LineColors.Orange: 'tab:orange',
+    LineColors.Cyan: 'tab:cyan',
+    LineColors.Green: 'tab:green',
 }
 
 PlotStyleSettings = {

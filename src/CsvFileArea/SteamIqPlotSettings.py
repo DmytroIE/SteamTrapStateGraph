@@ -1,38 +1,53 @@
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtCore, QtGui
 
 from src.CsvFileArea.IndPlotSettings import IndPlotSettings
 from src.utils.settings import LeakUnits
 
+from src.Communicate.Communicate import GlobalCommunicator
+
+from src.utils.settings import LineColors, line_colors_map, leak_units_symbol_map
+
 class SteamIqPlotSettings(IndPlotSettings):
-    def __init__(self, df, leak_col_name, cycle_col_name):
-        IndPlotSettings.__init__(self, df, leak_col_name)
+    def __init__(self, 
+                 df, 
+                 leak_col_name, 
+                 cycle_col_name, 
+                 def_color=LineColors.Orange, 
+                 def_is_plotted=False):
+        
+        IndPlotSettings.__init__(self, df, leak_col_name, def_color, def_is_plotted)
         self._cycle_col_name = cycle_col_name
 
 
 
-    def _create_ui(self):
-        super()._create_ui()
-        #---------------------Row 3---------------------------
+    def _create_ui(self, def_color, def_if_plotted):
+        super()._create_ui(def_color, def_if_plotted)
+        #---------------------Row 1---------------------------
         lbl_leak_units = QtWidgets.QLabel('Units for leakage')
         self._cmb_leak_units = QtWidgets.QComboBox()
         self._cmb_leak_units.addItems(LeakUnits)
 
-        lyt_opts_three = QtWidgets.QHBoxLayout()
-        lyt_opts_three .addWidget(lbl_leak_units)
-        lyt_opts_three.addWidget(self._cmb_leak_units)
-        #lyt_opts_three .addWidget()
-        #lyt_opts_three.addWidget()
+        lbl_conv_coef = QtWidgets.QLabel('Conversion coef')
+        self._ltx_conv_coef = QtWidgets.QLineEdit('1.0')
+        self._ltx_conv_coef.setValidator(QtGui.QDoubleValidator(0.0, 999999.999999, 6, notation=QtGui.QDoubleValidator.StandardNotation))
 
-        #---------------------Row 4---------------------------
-        lbl_is_integral_calc = QtWidgets.QLabel('Calc integral')
-        self._cbx_is_integral_calc = QtWidgets.QCheckBox()
-        lbl_is_integral_shown = QtWidgets.QLabel('Show on graph')
-        self._cbx_is_integral_shown = QtWidgets.QCheckBox()
-        lyt_opts_four = QtWidgets.QHBoxLayout()
-        lyt_opts_four .addWidget(lbl_is_integral_calc)
-        lyt_opts_four.addWidget(self._cbx_is_integral_calc)
-        lyt_opts_four .addWidget(lbl_is_integral_shown)
-        lyt_opts_four.addWidget(self._cbx_is_integral_shown)
+        lyt_opts_one = QtWidgets.QHBoxLayout()
+        lyt_opts_one .addWidget(lbl_leak_units)
+        lyt_opts_one.addWidget(self._cmb_leak_units)
+        lyt_opts_one .addWidget(lbl_conv_coef)
+        lyt_opts_one.addWidget(self._ltx_conv_coef)
 
-        self._lyt_main.addLayout(lyt_opts_three)
-        self._lyt_main.addLayout(lyt_opts_four)      
+        self._lyt_main.addLayout(lyt_opts_one)
+    
+    def _convert_series(self, srs):
+        try:
+            conv_coef = float(self._ltx_conv_coef.text())
+            return srs*conv_coef
+        except Exception as error:
+            raise Exception(f'Conversion coefficient is wrong')
+        
+    def plot(self, ax, resample_options, service_breaks):
+        super().plot(ax, resample_options, service_breaks)
+        ax.set_ylabel(ax.get_ylabel() + ', ' + leak_units_symbol_map[self._cmb_leak_units.currentText()])
+
+

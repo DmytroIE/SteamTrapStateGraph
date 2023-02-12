@@ -66,13 +66,34 @@ def calc_integral(pd_series):
     return (integral, cumulative_time)
 
 def split_one_series_by_sb(srs, service_breaks):
-    return [srs]
+
+    srs_list = []
+
+    if len(service_breaks) > 0:
+        sb_prev = srs.index[0]
+        #print(f'sb prev = {sb_prev}')
+        for sb in service_breaks:
+            #print(f'first sb = {sb}')
+            if sb > sb_prev:
+                chunk = srs[(srs.index>=sb_prev)&(srs.index<=sb)]
+                srs_list.append(chunk)
+                sb_prev = sb
+            else:
+                raise ValueError('Service breaks are not ordered')
+        chunk = srs[(srs.index>=sb_prev)]
+        srs_list.append(chunk)
+    else:
+        srs_list.append(srs)
+    return srs_list
 
 def resample_series(srs_list, resample_options):
     return srs_list
 
-
-
+def convert_sbs_to_pd_format(service_breaks):
+    pd_format_sbs = []
+    for sb in service_breaks:
+        pd_format_sbs.append(pd.to_datetime(sb))
+    return pd_format_sbs
 
 
 if __name__ == '__main__':

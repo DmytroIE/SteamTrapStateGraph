@@ -52,7 +52,10 @@ class CsvFileArea(QtWidgets.QWidget):
                             'plot_from': plot_from,
                             'plot_to': plot_to,
                             'offset': offset}
-        service_breaks = [self._dt_service_break.dateTime().toPython()] #in future there will be several service breaks, so we use the list
+        service_breaks = [] #in future there will be several service breaks, so we use the list
+        sb = self._dt_service_break.dateTime().toPython()
+        if sb > plot_from and sb < plot_to:
+            service_breaks.append(sb)
 
         try:
             self._plt.grid(True)
