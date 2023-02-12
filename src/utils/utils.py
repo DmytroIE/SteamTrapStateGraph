@@ -66,7 +66,7 @@ def calc_integral(pd_series):
     return (integral, cumulative_time)
 
 def split_one_series_by_sb(srs, service_breaks):
-    return srs
+    return [srs]
 
 def resample_series(srs_list, resample_options):
     return srs_list

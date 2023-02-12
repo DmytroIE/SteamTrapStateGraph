@@ -6,7 +6,7 @@ import numpy as np
 from src.Communicate.Communicate import GlobalCommunicator
 
 from src.utils.utils import get_file_name_from_path, calc_integral
-from src.utils.settings import ResampOperations
+from src.utils.settings import ResampleOperations
 
 from src.CsvFileArea.IndPlotSettings import IndPlotSettings
 from src.CsvFileArea.SteamIqPlotSettings import SteamIqPlotSettings
@@ -24,6 +24,7 @@ class CsvFileArea(QtWidgets.QWidget):
     def load_csv_file(self, path, params):
         try:
             self._load_csv_file(path, params)
+            self._file_name = get_file_name_from_path(path)
             self._create_ui()
             GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
             return True
@@ -34,97 +35,119 @@ class CsvFileArea(QtWidgets.QWidget):
         
     @QtCore.Slot()
     def _plot_graph(self):
-
-        aver_period = self._spb_averaging_period.value()
-        averaging_method = self._cmb_averaging_options.currentText()
-        col_to_plot = self._cmb_column_to_plot.currentText()
-        y_axis_name = self._ltx_y_label.text()
-
-        plot_from = self._dt_plot_from.dateTime().toPython()
-        plot_to = self._dt_plot_to.dateTime().toPython()
-
-        plot_data = self._data[(self._data.index>=plot_from)&(self._data.index<=plot_to)]
-        plot_data = plot_data[col_to_plot]
-
-        if averaging_method == ResampOperations.Mean:
-            plot_data = plot_data.resample(f'{aver_period}h', origin='start').mean()#.fillna(0) #, offset='-5m'
-
-        self._txt_csv_view.setText(str(plot_data))
-        # plot_data.info()
-        # print(f'isnull={plot_data.isnull()}')
-
-
-       
         if len(self._plt.get_fignums())<1:
-            fig, axs = self._plt.subplots(figsize=(14, 2))
+            fig, axs = self._plt.subplots(figsize=(14, 4))
         else:
             self._plt.cla()
             fig = self._plt.gcf()
             axs = self._plt.gca()
+
+        aver_period = self._spb_resample_period.value()
+        aver_method = self._cmb_resample_operations.currentText()
+        plot_from = self._dt_plot_from.dateTime().toPython()
+        plot_to = self._dt_plot_to.dateTime().toPython()
+        offset = self._spb_resample_offset.value()
+        resample_options = {'aver_period': aver_period, 
+                            'aver_method': aver_method, 
+                            'plot_from': plot_from,
+                            'plot_to': plot_to,
+                            'offset': offset}
+        service_breaks = [self._dt_service_break.dateTime().toPython()] #in future there will be several service breaks, so we use the list
+
         try:
-
             self._plt.grid(True)
-            plot_data.plot(ax = axs, color=self._cmb_line_color.currentText(), label = y_axis_name)
-            
-            if y_axis_name:
-                axs.set_ylabel(y_axis_name)
-            else:
-                axs.set_ylabel(col_to_plot)
+            for wdg in self._param_widgets_map.values():
+                wdg.plot(axs, resample_options, service_breaks)
+
             axs.set_title(self._file_name)
-            y_axis_limits = [self._spb_y_axis_from.value(), self._spb_y_axis_to.value()]
-            axs.set_ylim(y_axis_limits)
-            axs.fill_between(plot_data.index, y1=plot_data, alpha=0.4, color=self._cmb_line_color.currentText(), linewidth=2)
-
-            result = calc_integral(plot_data)
-            if result:
-                integr, time_diff = result
-                mean_integr_value = integr/time_diff
-                #print(f'Numpy integr={integr}')
-                #print(f'time diff={time_diff}')
-                #print(f'Mean integr ={mean_integr_value}')
-                axs.axhline(integr/time_diff, ls='--', color='r', label = f'Mean = {mean_integr_value:.2f}')
-                
-            else:
-                print('None')
-
-            axs.legend()
 
         except Exception as error:
-            print(str(error))
+            #print(str(error))
             GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
-            print(str(error))
+
+        # aver_period = self._spb_averaging_period.value()
+        # averaging_method = self._cmb_averaging_options.currentText()
+        # col_to_plot = self._cmb_column_to_plot.currentText()
+        # y_axis_name = self._ltx_y_label.text()
+
+        # plot_from = self._dt_plot_from.dateTime().toPython()
+        # plot_to = self._dt_plot_to.dateTime().toPython()
+
+        # plot_data = self._data[(self._data.index>=plot_from)&(self._data.index<=plot_to)]
+        # plot_data = plot_data[col_to_plot]
+
+        # if averaging_method == ResampOperations.Mean:
+        #     plot_data = plot_data.resample(f'{aver_period}h', origin='start').mean()#.fillna(0) #, offset='-5m'
+
+        # self._txt_csv_view.setText(str(plot_data))
+       
+        # if len(self._plt.get_fignums())<1:
+        #     fig, axs = self._plt.subplots(figsize=(14, 2))
+        # else:
+        #     self._plt.cla()
+        #     fig = self._plt.gcf()
+        #     axs = self._plt.gca()
+        # try:
+
+        #     self._plt.grid(True)
+        #     plot_data.plot(ax = axs, color=self._cmb_line_color.currentText(), label = y_axis_name)
+            
+        #     if y_axis_name:
+        #         axs.set_ylabel(y_axis_name)
+        #     else:
+        #         axs.set_ylabel(col_to_plot)
+        #     axs.set_title(self._file_name)
+        #     y_axis_limits = [self._spb_y_axis_from.value(), self._spb_y_axis_to.value()]
+        #     axs.set_ylim(y_axis_limits)
+        #     axs.fill_between(plot_data.index, y1=plot_data, alpha=0.4, color=self._cmb_line_color.currentText(), linewidth=2)
+
+        #     result = calc_integral(plot_data)
+        #     if result:
+        #         integr, time_diff = result
+        #         mean_integr_value = integr/time_diff
+        #         axs.axhline(integr/time_diff, ls='--', color='r', label = f'Mean = {mean_integr_value:.2f}')
+                
+        #     else:
+        #         print('None')
+
+        #     axs.legend()
+
+        # except Exception as error:
+        #     print(str(error))
+        #     GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
+        #     print(str(error))
 
     def _load_csv_file(self, path, params):
         raise NotImplementedError
 
 
     def _create_ui(self):
-
+        #-Data text representation window-----------------------------
         self._txt_csv_view = QtWidgets.QTextBrowser()
         self._txt_csv_view.setText(str(self._data))
         #-Draw options-----------------------------
         gbx_options = QtWidgets.QGroupBox()
         gbx_options.setTitle('Draw options')
         #---------------Resample------------------
-        lbl_averaging_options = QtWidgets.QLabel('Averaging options')
-        self._cmb_averaging_options = QtWidgets.QComboBox()
-        self._cmb_averaging_options.addItems(ResampOperations)
-        self._cmb_averaging_options.setCurrentText(ResampOperations.Mean)
-        lbl_averaging_period = QtWidgets.QLabel('Hours of averaging')
-        self._spb_averaging_period = QtWidgets.QSpinBox()
-        self._spb_averaging_period.setRange(1, 24)
-        lbl_averaging_offset = QtWidgets.QLabel('Offset, min')
-        self._spb_averaging_offset = QtWidgets.QSpinBox()
-        self._spb_averaging_offset.setRange(-60, 60)
-        self._spb_averaging_offset.setValue(0)
-        lyt_averaging = QtWidgets.QHBoxLayout()
-        lyt_averaging.addWidget(lbl_averaging_options)
-        lyt_averaging.addWidget(self._cmb_averaging_options)
-        lyt_averaging.addWidget(lbl_averaging_period)
-        lyt_averaging.addWidget(self._spb_averaging_period)
-        lyt_averaging.addWidget(lbl_averaging_offset)
-        lyt_averaging.addWidget(self._spb_averaging_offset)
-        #---------------Plot From/To------------------
+        lbl_resample_operations = QtWidgets.QLabel('Resample operations')
+        self._cmb_resample_operations = QtWidgets.QComboBox()
+        self._cmb_resample_operations.addItems(ResampleOperations)
+        self._cmb_resample_operations.setCurrentText(ResampleOperations.Mean)
+        lbl_resample_period = QtWidgets.QLabel('Hours of averaging')
+        self._spb_resample_period = QtWidgets.QSpinBox()
+        self._spb_resample_period.setRange(1, 24)
+        lbl_resample_offset = QtWidgets.QLabel('Offset, min')
+        self._spb_resample_offset = QtWidgets.QSpinBox()
+        self._spb_resample_offset.setRange(-60, 60)
+        self._spb_resample_offset.setValue(0)
+        lyt_resample = QtWidgets.QHBoxLayout()
+        lyt_resample.addWidget(lbl_resample_operations)
+        lyt_resample.addWidget(self._cmb_resample_operations)
+        lyt_resample.addWidget(lbl_resample_period)
+        lyt_resample.addWidget(self._spb_resample_period)
+        lyt_resample.addWidget(lbl_resample_offset)
+        lyt_resample.addWidget(self._spb_resample_offset)
+        #---------------Plot From/To and Service break------------------
         lbl_plot_from = QtWidgets.QLabel('From date/time')
         self._dt_plot_from = QtWidgets.QDateTimeEdit()
         lbl_plot_to = QtWidgets.QLabel('To date/time')
@@ -140,14 +163,30 @@ class CsvFileArea(QtWidgets.QWidget):
         self._dt_plot_to.setDateTime(datetime_to)
         self._dt_plot_to.setMaximumDateTime(datetime_to)
 
+        lbl_service_break = QtWidgets.QLabel('Service break')
+        self._cbx_service_break = QtWidgets.QCheckBox()
+        self._dt_service_break = QtWidgets.QDateTimeEdit()
+        self._dt_service_break.setMinimumDateTime(datetime_from)
+        self._dt_service_break.setMaximumDateTime(datetime_to)
+        self._dt_service_break.setDisabled(True)
+        self._cbx_service_break.stateChanged.connect(lambda state: self._dt_service_break.setDisabled(not(bool(state))))
+
         lyt_dt_limits = QtWidgets.QHBoxLayout()
         lyt_dt_limits.addWidget(lbl_plot_from)
         lyt_dt_limits.addWidget(self._dt_plot_from)
         lyt_dt_limits.addWidget(lbl_plot_to)
         lyt_dt_limits.addWidget(self._dt_plot_to)
+        lyt_dt_limits.addWidget(lbl_service_break)
+        lyt_dt_limits.addWidget(self._cbx_service_break)
+        lyt_dt_limits.addWidget(self._dt_service_break)
+        #---------------Other plot options------------------
+
+        lbl_plot_title = QtWidgets.QLabel('Title')
+        self._ltx_plot_title = QtWidgets.QLineEdit()
+        self._ltx_plot_title.setText(self._file_name)
 
         options_layout = QtWidgets.QVBoxLayout(gbx_options)
-        options_layout.addLayout(lyt_averaging)
+        options_layout.addLayout(lyt_resample)
         options_layout.addLayout(lyt_dt_limits)
 
         #-Scroll parameter area (empty)-----------

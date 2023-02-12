@@ -6,7 +6,7 @@ import numpy as np
 from src.Communicate.Communicate import GlobalCommunicator
 
 from src.utils.utils import get_file_name_from_path, calc_integral
-from src.utils.settings import ResampOperations
+from src.utils.settings import ResampleOperations
 
 from src.CsvFileArea.CsvFileArea import CsvFileArea
 from src.CsvFileArea.IndPlotSettings import IndPlotSettings

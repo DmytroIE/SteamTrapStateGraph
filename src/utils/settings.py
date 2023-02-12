@@ -6,7 +6,7 @@ class CsvFileSources(str, Enum):
     SteamIQ = 'SteamIQ'
     iLoop = 'iLoop'
 
-class ResampOperations(str, Enum):
+class ResampleOperations(str, Enum):
     NoResample = 'No resample'
     Mean = 'Mean'
 

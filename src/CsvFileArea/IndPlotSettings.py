@@ -16,24 +16,42 @@ class IndPlotSettings(QtWidgets.QGroupBox):
         self._create_ui()
 
     def _prepare_plot_data(self, resample_options, service_breaks):
-        srs = self._prepare_series(self)
-        srs = split_one_series_by_sb(srs, service_breaks)
-        srs = resample_series(srs, resample_options)
+        srs = self._extract_series_from_df()
+        srs_list = split_one_series_by_sb(srs, service_breaks)
+        srs_list = resample_series(srs_list, resample_options)
 
-        if self._cbx_integral_on.checked():
-            for rs in srs:
+        if self._cbx_calc_integral.isChecked():
+            for rs in srs_list:
                 result = calc_integral(rs)
                 if result:
                     rs.integral = result[0]
                     rs.cum_time = result[1]
                     rs.mean_integr = result[0]/result[1]
+        return srs_list
 
 
-    def plot(self, ax):
-        pass
+    def plot(self, ax, resample_options, service_breaks):
+
+        srs_list = self._prepare_plot_data(resample_options, service_breaks)
+
+        y_axis_name = self._ltx_y_label.text()
+        color = self._cmb_line_color.currentText()
+
+        for srs in srs_list:
+            print(srs)
+            srs.plot(ax = ax, color=color, label = y_axis_name)
+            
+        if y_axis_name:
+            ax.set_ylabel(y_axis_name)
+        else:
+            ax.set_ylabel(self._col_name)
+
+        y_axis_limits = [self._spb_y_axis_from.value(), self._spb_y_axis_to.value()]
+        ax.set_ylim(y_axis_limits)
+        ax.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
 
 
-    def _prepare_series(self):
+    def _extract_series_from_df(self):
         return self._df[self._col_name]
 
     def _create_ui(self):
@@ -76,6 +94,18 @@ class IndPlotSettings(QtWidgets.QGroupBox):
         lyt_opts_two.addWidget(lbl_line_color)
         lyt_opts_two.addWidget(self._cmb_line_color)
 
+        #---------------------Row 3---------------------------
+        lbl_calc_integral = QtWidgets.QLabel('Calc integral')
+        self._cbx_calc_integral = QtWidgets.QCheckBox()
+        lbl_show_integral = QtWidgets.QLabel('Show on graph')
+        self._cbx_show_integral = QtWidgets.QCheckBox()
+        lyt_opts_three = QtWidgets.QHBoxLayout()
+        lyt_opts_three .addWidget(lbl_calc_integral)
+        lyt_opts_three.addWidget(self._cbx_calc_integral)
+        lyt_opts_three .addWidget(lbl_show_integral)
+        lyt_opts_three.addWidget(self._cbx_show_integral)
+
         self._lyt_main.addLayout(lyt_opts_one)
         self._lyt_main.addLayout(lyt_opts_two)
+        self._lyt_main.addLayout(lyt_opts_three)
 
