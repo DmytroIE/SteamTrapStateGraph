@@ -22,22 +22,29 @@ class SteamIqPlotSettings(IndPlotSettings):
 
     def _create_ui(self, def_color, def_if_plotted):
         super()._create_ui(def_color, def_if_plotted)
-        #---------------------Row 1---------------------------
-        lbl_leak_units = QtWidgets.QLabel('Units for leakage')
+        #---------------------Row 3---------------------------
+        self._lbl_consider_act_factor = QtWidgets.QLabel('Consider activity factor')
+        self._cbx_sonsider_act_factor = QtWidgets.QCheckBox()
+
+        self._lyt_opts_three.addWidget(self._lbl_consider_act_factor)
+        self._lyt_opts_three.addWidget(self._cbx_sonsider_act_factor)
+
+        #---------------------Row 4---------------------------
+        self._lbl_leak_units = QtWidgets.QLabel('Units for leakage')
         self._cmb_leak_units = QtWidgets.QComboBox()
         self._cmb_leak_units.addItems(LeakUnits)
 
-        lbl_conv_coef = QtWidgets.QLabel('Conversion coef')
+        self._lbl_conv_coef = QtWidgets.QLabel('Conversion coef')
         self._ltx_conv_coef = QtWidgets.QLineEdit('1.0')
         self._ltx_conv_coef.setValidator(QtGui.QDoubleValidator(0.0, 999999.999999, 6, notation=QtGui.QDoubleValidator.StandardNotation))
 
-        lyt_opts_one = QtWidgets.QHBoxLayout()
-        lyt_opts_one .addWidget(lbl_leak_units)
-        lyt_opts_one.addWidget(self._cmb_leak_units)
-        lyt_opts_one .addWidget(lbl_conv_coef)
-        lyt_opts_one.addWidget(self._ltx_conv_coef)
+        self._lyt_opts_four = QtWidgets.QHBoxLayout()
+        self._lyt_opts_four .addWidget(self._lbl_leak_units)
+        self._lyt_opts_four.addWidget(self._cmb_leak_units)
+        self._lyt_opts_four .addWidget(self._lbl_conv_coef)
+        self._lyt_opts_four.addWidget(self._ltx_conv_coef)
 
-        self._lyt_main.addLayout(lyt_opts_one)
+        self._lyt_main.addLayout(self._lyt_opts_four)
     
     def _convert_series(self, srs):
         try:
@@ -47,7 +54,8 @@ class SteamIqPlotSettings(IndPlotSettings):
             raise Exception(f'Conversion coefficient is wrong')
         
     def plot(self, ax, resample_options, service_breaks):
-        super().plot(ax, resample_options, service_breaks)
+        srs_list = super().plot(ax, resample_options, service_breaks)
         ax.set_ylabel(ax.get_ylabel() + ', ' + leak_units_symbol_map[self._cmb_leak_units.currentText()])
+        return srs_list
 
 

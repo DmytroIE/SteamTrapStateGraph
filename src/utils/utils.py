@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+from src.utils.settings import ResampleOperations
 
 def get_file_name_from_path(path):
     return path.split("/")[-1]
@@ -87,7 +88,24 @@ def split_one_series_by_sb(srs, service_breaks):
     return srs_list
 
 def resample_series(srs_list, resample_options):
-    return srs_list
+    aver_method = resample_options['aver_method']
+    aver_period = resample_options['aver_period']
+    offset = resample_options['offset']
+    resampled_srs_list = []
+    match aver_method:
+        case ResampleOperations.Mean:
+            for srs in srs_list:
+                #last_index_from_orig_srs = srs.index[-1]
+                resampled_srs = srs.resample(f'{aver_period}h', origin='start', offset=f'{offset}m').mean()#.ffill(limit=1)
+                #last_value_from_res_srs = resampled_srs[-1]
+                #resampled_srs.loc[last_index_from_orig_srs] = last_value_from_res_srs
+                resampled_srs_list.append(resampled_srs)
+        case ResampleOperations.NoResample:
+            resampled_srs_list = srs_list
+        case _:
+            resampled_srs_list = srs_list
+    return resampled_srs_list
+
 
 def convert_sbs_to_pd_format(service_breaks):
     pd_format_sbs = []

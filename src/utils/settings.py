@@ -1,6 +1,6 @@
 from cycler import cycler
 from enum import Enum
-
+import itertools
 
 class CsvFileSources(str, Enum):
     SteamIQ = 'SteamIQ'
@@ -30,6 +30,11 @@ class LineColors(str, Enum):
     Orange = 'Orange'
     Cyan = 'Cyan'
     Green = 'Green'
+    DeepSkyBlue = 'DeepSkyBlue'
+    Red = 'Red'
+    Lime = 'Lime'
+    Magenta = 'Magenta'
+    Gold = 'Gold'
 
     # @classmethod
     # def keys(cls):
@@ -46,6 +51,16 @@ line_colors_map = {
     LineColors.Cyan: 'tab:cyan',
     LineColors.Green: 'tab:green',
 }
+
+aux_line_colors_map = {
+    LineColors.DeepSkyBlue: 'deepskyblue',
+    LineColors.Red: 'tab:red',
+    LineColors.Lime: 'lime',
+    LineColors.Magenta: 'm',
+    LineColors.Gold: 'gold',
+}
+
+aux_line_cycler = itertools.cycle(aux_line_colors_map.values())
 
 PlotStyleSettings = {
 'axes.edgecolor': 'grey',

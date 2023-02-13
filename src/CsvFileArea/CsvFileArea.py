@@ -35,6 +35,7 @@ class CsvFileArea(QtWidgets.QWidget):
         
     @QtCore.Slot()
     def _plot_graph(self):
+        #print(self._plt.get_fignums())
         if len(self._plt.get_fignums())<1:
             fig, axs = self._plt.subplots(figsize=(14, 4))
         else:
@@ -59,10 +60,23 @@ class CsvFileArea(QtWidgets.QWidget):
 
         try:
             self._plt.grid(True)
+            text_representation = []
+            # ind = -255
             for wdg in self._param_widgets_map.values():
-                wdg.plot(axs, resample_options, service_breaks)
+                # if ind > 0:
+                #     ax = axs.twinx()
+                #     ax.spines.right.set_position(("axes", 1+0.2*ind))
+                # else:
+                #     ax = axs
+                srs_list = wdg.plot(axs, resample_options, service_breaks)
+                # ind += 1
+                if srs_list:
+                    text_representation.append('\n----\n'.join([str(srs) for srs in srs_list]))
+            
+            self._txt_csv_view.setText('\n------------\n'.join(text_representation))
 
-            axs.set_title(self._file_name)
+            axs.set_title(self._ltx_plot_title.text())
+            axs.legend()
 
         except Exception as error:
             #print(str(error))
@@ -187,10 +201,14 @@ class CsvFileArea(QtWidgets.QWidget):
         lbl_plot_title = QtWidgets.QLabel('Title')
         self._ltx_plot_title = QtWidgets.QLineEdit()
         self._ltx_plot_title.setText(self._file_name)
+        lyt_dt_other = QtWidgets.QHBoxLayout()
+        lyt_dt_other.addWidget(lbl_plot_title)
+        lyt_dt_other.addWidget(self._ltx_plot_title)
 
         options_layout = QtWidgets.QVBoxLayout(gbx_options)
         options_layout.addLayout(lyt_resample)
         options_layout.addLayout(lyt_dt_limits)
+        options_layout.addLayout(lyt_dt_other)
 
         #-Scroll parameter area (empty)-----------
         gbx_parameters = QtWidgets.QGroupBox()
