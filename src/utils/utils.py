@@ -106,12 +106,60 @@ def resample_series(srs_list, resample_options):
             resampled_srs_list = srs_list
     return resampled_srs_list
 
-
 def convert_sbs_to_pd_format(service_breaks):
     pd_format_sbs = []
     for sb in service_breaks:
         pd_format_sbs.append(pd.to_datetime(sb))
     return pd_format_sbs
+
+def steam_Iq_make_cold_state_interval_list_for_series(cycle_srs, srs, num_of_points = 2):
+    if num_of_points < 2:
+        raise ValueError('To create interval at least 2 spoints are needed')
+    
+    srs_interv_list = []
+    int_idx = 0
+
+    while int_idx < cycle_srs.size:
+        if abs(cycle_srs[int_idx]) < 1e-9 and abs(srs[int_idx]) < 1e-9:
+            #start = cycle_srs.index[int_idx]
+            # end_int_idx = int_idx + point_number
+            # if end_int_idx > cycle_srs.size:
+            #     end_int_idx = cycle_srs.size
+            chunk_cs = cycle_srs.iloc[int_idx:]
+            chunk_s = srs.iloc[int_idx:]
+            i = 0
+            for a, b in zip(chunk_cs, chunk_s):
+                if abs(a) < 1e-9 and abs(b) < 1e-9:
+                    if i == chunk_cs.size-1:
+                        if i<num_of_points-1:
+                            int_idx += i + 1
+                            break
+                        else:
+                            srs_interv_list.append((chunk_cs.index[0], chunk_cs.index[i]))
+                            int_idx += i + 1
+                            break
+                    i += 1
+                    continue
+
+                else:
+                    if i<num_of_points:
+                        int_idx += i + 1
+                        break
+                    else:
+                        srs_interv_list.append((chunk_cs.index[0], chunk_cs.index[i-1]))
+                        int_idx += i + 1
+                        break
+        else:
+            int_idx += 1
+
+    return srs_interv_list
+
+def extract_series_from_df(df, from_, to, col_name):
+    if from_ < to:
+            srs = df[col_name]
+            return srs[(srs.index>=from_)&(srs.index<=to)]
+    else:
+        raise ValueError('Mismatch in the plot dates')
 
 
 if __name__ == '__main__':
@@ -131,24 +179,38 @@ if __name__ == '__main__':
 
     test_list = [sr_err, sr_1, sr_2]
 
-    for sr in test_list:
-        result = calc_integral_numpy_types(sr)
-        print('---------results Numpy datatype-------------')
-        if result:
-            print(f'integral_np = {result[0]}\ncumul time_np = {result[1]}')
-            print(f'mean_integr_np = {result[0]/result[1]}')
-            print(f'loss_np = {result[0]* 15}')
-        else:
-            print('None_np')
+    # for sr in test_list:
+    #     result = calc_integral_numpy_types(sr)
+    #     print('---------results Numpy datatype-------------')
+    #     if result:
+    #         print(f'integral_np = {result[0]}\ncumul time_np = {result[1]}')
+    #         print(f'mean_integr_np = {result[0]/result[1]}')
+    #         print(f'loss_np = {result[0]* 15}')
+    #     else:
+    #         print('None_np')
             
-        print('\n')
+    #     print('\n')
             
-        result = calc_integral(sr)
-        print('---------results Pandas datatype-------------')
-        if result:
-            print(f'integral = {result[0]}\ncumul time = {result[1]}')
-            print(f'mean integr = {result[0]/result[1]}')
-            print(f'loss = {result[0].total_seconds()* 15}')
-        else:
-            print('None_pd')
-        print('-----------------------------------------\n')
+    #     result = calc_integral(sr)
+    #     print('---------results Pandas datatype-------------')
+    #     if result:
+    #         print(f'integral = {result[0]}\ncumul time = {result[1]}')
+    #         print(f'mean integr = {result[0]/result[1]}')
+    #         print(f'loss = {result[0].total_seconds()* 15}')
+    #     else:
+    #         print('None_pd')
+    #     print('-----------------------------------------\n')
+    index2 = pd.DatetimeIndex(['2014-07-04 12:01:33', 
+                          '2014-07-04 12:31:33', 
+                          '2014-07-04 13:01:33', 
+                          '2014-07-04 13:31:33',
+                          '2014-07-04 14:01:33',
+                          '2014-07-04 14:31:33',
+                          '2014-07-04 15:01:33',
+                          '2014-07-04 15:31:33',
+                          '2014-07-04 16:01:33',
+                          '2014-07-04 16:31:33',
+                          '2014-07-04 17:01:33'])
+    test_cs = pd.Series([2,0,0,1,2,0,1,2,0,0,0], index = index2)
+    test_s = pd.Series([6,0,0,7,8,0,5,3,0,0,0], index = index2)
+    print(steam_Iq_make_cold_state_interval_list_for_series(test_cs, test_s, 3))

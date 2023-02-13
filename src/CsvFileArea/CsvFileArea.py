@@ -71,9 +71,13 @@ class CsvFileArea(QtWidgets.QWidget):
                 srs_list = wdg.plot(axs, resample_options, service_breaks)
                 # ind += 1
                 if srs_list:
-                    text_representation.append('\n----\n'.join([str(srs) for srs in srs_list]))
+                    for srs in srs_list:
+                        integral_str = 'N/A'
+                        if hasattr(srs, 'integral'):
+                            integral_str = str(srs.integral.total_seconds())
+                        text_representation.append(str(srs)+f'\nIntegral = {integral_str} units*sec\n')
             
-            self._txt_csv_view.setText('\n------------\n'.join(text_representation))
+            self._txt_csv_view.setText('\n------------------\n'.join(text_representation))
 
             axs.set_title(self._ltx_plot_title.text())
             axs.legend()
@@ -81,58 +85,6 @@ class CsvFileArea(QtWidgets.QWidget):
         except Exception as error:
             #print(str(error))
             GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
-
-        # aver_period = self._spb_averaging_period.value()
-        # averaging_method = self._cmb_averaging_options.currentText()
-        # col_to_plot = self._cmb_column_to_plot.currentText()
-        # y_axis_name = self._ltx_y_label.text()
-
-        # plot_from = self._dt_plot_from.dateTime().toPython()
-        # plot_to = self._dt_plot_to.dateTime().toPython()
-
-        # plot_data = self._data[(self._data.index>=plot_from)&(self._data.index<=plot_to)]
-        # plot_data = plot_data[col_to_plot]
-
-        # if averaging_method == ResampOperations.Mean:
-        #     plot_data = plot_data.resample(f'{aver_period}h', origin='start').mean()#.fillna(0) #, offset='-5m'
-
-        # self._txt_csv_view.setText(str(plot_data))
-       
-        # if len(self._plt.get_fignums())<1:
-        #     fig, axs = self._plt.subplots(figsize=(14, 2))
-        # else:
-        #     self._plt.cla()
-        #     fig = self._plt.gcf()
-        #     axs = self._plt.gca()
-        # try:
-
-        #     self._plt.grid(True)
-        #     plot_data.plot(ax = axs, color=self._cmb_line_color.currentText(), label = y_axis_name)
-            
-        #     if y_axis_name:
-        #         axs.set_ylabel(y_axis_name)
-        #     else:
-        #         axs.set_ylabel(col_to_plot)
-        #     axs.set_title(self._file_name)
-        #     y_axis_limits = [self._spb_y_axis_from.value(), self._spb_y_axis_to.value()]
-        #     axs.set_ylim(y_axis_limits)
-        #     axs.fill_between(plot_data.index, y1=plot_data, alpha=0.4, color=self._cmb_line_color.currentText(), linewidth=2)
-
-        #     result = calc_integral(plot_data)
-        #     if result:
-        #         integr, time_diff = result
-        #         mean_integr_value = integr/time_diff
-        #         axs.axhline(integr/time_diff, ls='--', color='r', label = f'Mean = {mean_integr_value:.2f}')
-                
-        #     else:
-        #         print('None')
-
-        #     axs.legend()
-
-        # except Exception as error:
-        #     print(str(error))
-        #     GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
-        #     print(str(error))
 
     def _load_csv_file(self, path, params):
         raise NotImplementedError

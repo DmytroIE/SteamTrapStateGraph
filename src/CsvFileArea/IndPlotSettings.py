@@ -2,8 +2,8 @@ from PySide6 import QtWidgets
 
 from src.Communicate.Communicate import GlobalCommunicator
 
-from src.utils.utils import split_one_series_by_sb, resample_series, calc_integral, convert_sbs_to_pd_format
-from src.utils.settings import LineColors, line_colors_map, aux_line_cycler
+from src.utils.utils import split_one_series_by_sb, resample_series, calc_integral, convert_sbs_to_pd_format, extract_series_from_df
+from src.utils.settings import LineColors, AuxLineColors, line_colors_map, aux_line_cycler
 
 import matplotlib as mpl
 
@@ -18,7 +18,8 @@ class IndPlotSettings(QtWidgets.QGroupBox):
         self._create_ui(def_color, def_is_plotted)
 
     def _prepare_plot_data(self, resample_options, service_breaks):
-        srs = self._extract_series_from_df(resample_options['plot_from'], resample_options['plot_to'])
+        #srs = self._extract_series_from_df(resample_options['plot_from'], resample_options['plot_to'])
+        srs = extract_series_from_df(self._df, resample_options['plot_from'], resample_options['plot_to'], self._col_name)
         srs = self._convert_series(srs)
         service_breaks.sort()
         service_breaks = convert_sbs_to_pd_format(service_breaks)
@@ -52,9 +53,9 @@ class IndPlotSettings(QtWidgets.QGroupBox):
 
             #--------add mean integral value lines---------------
             if self._cbx_show_integral.isChecked():
-                x_st = resample_options['plot_from']
-                x_end = resample_options['plot_to']
-                delta_x = x_end - x_st
+                # x_st = resample_options['plot_from']
+                # x_end = resample_options['plot_to']
+
                 for srs in srs_list:
                     if hasattr(srs, 'mean_integr_val'):
                         x0, x1 = ax.get_xlim()
@@ -82,12 +83,12 @@ class IndPlotSettings(QtWidgets.QGroupBox):
             GlobalCommunicator.change_status_line.emit(f'Cannot plot, {error}')
 
 
-    def _extract_series_from_df(self, plot_from, plot_to):
-        if plot_from < plot_to:
-            srs = self._df[self._col_name]
-            return srs[(srs.index>=plot_from)&(srs.index<=plot_to)]
-        else:
-            raise ValueError('Mismatch in the plot dates')
+    # def _extract_series_from_df(self, plot_from, plot_to):
+    #     if plot_from < plot_to:
+    #         srs = self._df[self._col_name]
+    #         return srs[(srs.index>=plot_from)&(srs.index<=plot_to)]
+    #     else:
+    #         raise ValueError('Mismatch in the plot dates')
     
     def _convert_series(self, srs):
         return srs #in the case of the base class no conversion is made

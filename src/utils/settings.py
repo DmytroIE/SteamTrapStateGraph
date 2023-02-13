@@ -30,6 +30,9 @@ class LineColors(str, Enum):
     Orange = 'Orange'
     Cyan = 'Cyan'
     Green = 'Green'
+
+
+class AuxLineColors(str, Enum):
     DeepSkyBlue = 'DeepSkyBlue'
     Red = 'Red'
     Lime = 'Lime'
@@ -49,15 +52,15 @@ class LineColors(str, Enum):
 line_colors_map = {
     LineColors.Orange: 'tab:orange',
     LineColors.Cyan: 'tab:cyan',
-    LineColors.Green: 'tab:green',
+    LineColors.Green: 'tab:green'
 }
 
 aux_line_colors_map = {
-    LineColors.DeepSkyBlue: 'deepskyblue',
-    LineColors.Red: 'tab:red',
-    LineColors.Lime: 'lime',
-    LineColors.Magenta: 'm',
-    LineColors.Gold: 'gold',
+    AuxLineColors.DeepSkyBlue: 'deepskyblue',
+    AuxLineColors.Red: 'tab:red',
+    AuxLineColors.Lime: 'lime',
+    AuxLineColors.Magenta: 'm',
+    AuxLineColors.Gold: 'gold'
 }
 
 aux_line_cycler = itertools.cycle(aux_line_colors_map.values())
