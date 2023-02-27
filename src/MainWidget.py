@@ -20,7 +20,7 @@ class MainWidget(QtWidgets.QWidget):
         #print(str(mpl.rcParams))
         #plt.style.use('seaborn-v0_8-paper')
         #print(str(mpl.rcParams))
-        #plt.rcParams.update(PlotStyleSettings)
+        plt.rcParams.update(PlotStyleSettings)
 
         self._lyt_main = QtWidgets.QVBoxLayout(self)
         self._create_ui()
@@ -31,7 +31,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def load_csv_file(self):
         file_name = get_file_name_from_path(self._csv_file_path)
-        
+
         if self._csv_file_path in self._open_csv_files:
             GlobalCommunicator.change_status_line.emit(f'File {file_name} is already open')
             return
@@ -42,6 +42,8 @@ class MainWidget(QtWidgets.QWidget):
             case _:
                 GlobalCommunicator.change_status_line.emit(f'No template for such source')
                 return
+            
+        GlobalCommunicator.change_status_line.emit(f'Processing {file_name}...')
         params = self._wdg_import_options.make_file_load_params()
         success = new_area.load_csv_file(self._csv_file_path, params)
         if success:

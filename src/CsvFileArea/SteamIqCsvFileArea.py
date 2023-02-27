@@ -1,4 +1,5 @@
 from PySide6 import QtCore, QtWidgets
+import matplotlib.dates as mdates
 
 import pandas as pd
 import numpy as np
@@ -22,11 +23,15 @@ class SteamIqCsvFileArea(CsvFileArea):
     def _fill_custom_area(self):
         self._lbl_plot_graph = QtWidgets.QLabel('Plot graph')
         self._cbx_plot_graph = QtWidgets.QCheckBox()
+        self._lbl_add_legend = QtWidgets.QLabel('Add legend')
+        self._cbx_add_legend = QtWidgets.QCheckBox()
         self._lbl_plot_activity_map = QtWidgets.QLabel('Plot activity map')
         self._cbx_plot_activity_map = QtWidgets.QCheckBox()
         self._lyt_opts_one = QtWidgets.QHBoxLayout()
         self._lyt_opts_one.addWidget(self._lbl_plot_graph)
         self._lyt_opts_one.addWidget(self._cbx_plot_graph)
+        self._lyt_opts_one.addWidget(self._lbl_add_legend)
+        self._lyt_opts_one.addWidget(self._cbx_add_legend)
         self._lyt_opts_one.addWidget(self._lbl_plot_activity_map)
         self._lyt_opts_one.addWidget(self._cbx_plot_activity_map)
 
@@ -59,12 +64,13 @@ class SteamIqCsvFileArea(CsvFileArea):
     def _plot_graph(self):
         #print(self._plt.get_fignums())
         if len(self._plt.get_fignums())<1:
-            fig, axs = self._plt.subplots(figsize=(14, 1))
+            fig, axs = self._plt.subplots(figsize=(14, 1), layout='constrained')
         else:
             self._plt.cla()
             fig = self._plt.gcf()
             axs = self._plt.gca()
-
+        #axs.xaxis.set_major_formatter(mdates.ConciseDateFormatter(axs.xaxis.get_major_locator()))
+        
 
         plot_from = self._dt_plot_from.dateTime().toPython()
         plot_to = self._dt_plot_to.dateTime().toPython()
@@ -77,27 +83,40 @@ class SteamIqCsvFileArea(CsvFileArea):
         try:
             self._plt.grid(True)
             text_representation = []
+            #axs.locator_params(nbins=3)
+            if self._cbx_plot_graph.isChecked():
+                srs = extract_series_from_df(self._data, plot_from, plot_to, 'Aver leak')
+                color = 'w'#line_colors_map['LineColors.Orange']#[self._cmb_line_color.currentText()]
+                srs.plot(ax = axs, color=color)
+                axs.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
+                if self._cbx_add_legend.isChecked():
+                    axs.legend()
+            if self._cbx_plot_activity_map.isChecked():
+                fsts = extract_series_from_df(self._data, plot_from, plot_to, 'Final status')
+                status_map = SteamIqToolSet.prepare_status_map(fsts)
+                for item in status_map['0']:
+                    axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Offline], alpha=0.8)
+                for item in status_map['1']:
+                    axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Cold], alpha=0.8)
+                for item in status_map['2']:
+                    axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Low], alpha=0.8)
+                for item in status_map['3']:
+                    axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Medium], alpha=0.8)
+                for item in status_map['4']:
+                    axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.High], alpha=0.8)
 
-            srs = extract_series_from_df(self._data, plot_from, plot_to, 'Aver leak')
-            color = 'w'#line_colors_map['LineColors.Orange']#[self._cmb_line_color.currentText()]
-            srs.plot(ax = axs, color=color)
-            axs.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
-
-            fsts = extract_series_from_df(self._data, plot_from, plot_to, 'Final status')
-            status_map = SteamIqToolSet.prepare_status_map(fsts)
-            for item in status_map['0']:
-                axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Offline], alpha=0.8)
-            for item in status_map['1']:
-                axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Cold], alpha=0.8)
-            for item in status_map['2']:
-                axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Low], alpha=0.8)
-            for item in status_map['3']:
-                axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Medium], alpha=0.8)
-            for item in status_map['4']:
-                axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.High], alpha=0.8)
-
+            #axs.set_xticklabels(axs.get_xticklabels(), rotation=0, ha='center')
+            axs.set_xticks([plot_from, plot_to])
+            axs.set_xticklabels([plot_from.strftime('%Y/%m/%d'), plot_to.strftime('%Y/%m/%d')], rotation=0, ha='center')
             axs.set_title(self._ltx_plot_title.text())
-            #axs.legend()
+
+            axs.set_ylim([0, 50])
+            
+            # xtick_locator = mdates.AutoDateLocator(minticks=9, maxticks=10)
+            # xtick_formatter = mdates.AutoDateFormatter(xtick_locator)
+            # axs.xaxis.set_major_locator(xtick_locator)
+            # axs.xaxis.set_major_formatter(xtick_formatter)
+            
 
         except Exception as error:
             #print(str(error))

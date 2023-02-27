@@ -23,7 +23,6 @@ class CsvFileArea(QtWidgets.QWidget):
        
     def load_csv_file(self, path, params):
         
-        GlobalCommunicator.change_status_line.emit(f'Processing {get_file_name_from_path(path)}...')
         try:
             self._load_csv_file(path, params)
             self._file_name = get_file_name_from_path(path)
