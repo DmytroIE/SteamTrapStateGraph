@@ -20,7 +20,7 @@ class MainWidget(QtWidgets.QWidget):
         #print(str(mpl.rcParams))
         #plt.style.use('seaborn-v0_8-paper')
         #print(str(mpl.rcParams))
-        plt.rcParams.update(PlotStyleSettings)
+        #plt.rcParams.update(PlotStyleSettings)
 
         self._lyt_main = QtWidgets.QVBoxLayout(self)
         self._create_ui()

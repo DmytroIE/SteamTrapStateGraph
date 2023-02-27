@@ -39,15 +39,13 @@ class AuxLineColors(str, Enum):
     Magenta = 'Magenta'
     Gold = 'Gold'
 
-    # @classmethod
-    # def keys(cls):
-    #     return cls.__members__.keys()
+class StatusColors(str, Enum):
+    Offline = 'Offline'
+    Cold = 'Cold'
+    Low = 'Low'
+    Medium = 'Medium'
+    High = 'High'
 
-# line_colors_map = {
-#     'Orange': 'tab:orange',
-#     'Cyan': 'tab:cyan',
-#     'Green': 'tab:green',
-# }
 
 line_colors_map = {
     LineColors.Orange: 'tab:orange',
@@ -61,6 +59,14 @@ aux_line_colors_map = {
     AuxLineColors.Lime: 'lime',
     AuxLineColors.Magenta: 'm',
     AuxLineColors.Gold: 'gold'
+}
+
+status_colors_map = {
+    StatusColors.Offline: 'gainsboro',
+    StatusColors.Cold: 'cornflowerblue',
+    StatusColors.Low: 'chartreuse',
+    StatusColors.Medium: 'orange',
+    StatusColors.High: 'orangered'
 }
 
 aux_line_cycler = itertools.cycle(aux_line_colors_map.values())
