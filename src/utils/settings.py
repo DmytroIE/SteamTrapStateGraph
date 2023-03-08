@@ -16,8 +16,8 @@ class LeakUnits(str, Enum):
     Energy = 'Energy'
 
 leak_units_symbol_map = {
-    LeakUnits.Percent: '%',
-    LeakUnits.Mass: 'kg/h',
+    LeakUnits.Percent: '%*h',
+    LeakUnits.Mass: 'kg',
     LeakUnits.Energy: 'kWh'
 }
 
@@ -30,6 +30,7 @@ class LineColors(str, Enum):
     Orange = 'Orange'
     Cyan = 'Cyan'
     Green = 'Green'
+    White = 'White'
 
 
 class AuxLineColors(str, Enum):
@@ -50,7 +51,8 @@ class StatusColors(str, Enum):
 line_colors_map = {
     LineColors.Orange: 'tab:orange',
     LineColors.Cyan: 'tab:cyan',
-    LineColors.Green: 'tab:green'
+    LineColors.Green: 'tab:green',
+    LineColors.White: 'w'
 }
 
 aux_line_colors_map = {

@@ -105,13 +105,7 @@ class SteamIqToolSet():
     def set_final_statuses(df):
         df['Aver leak'] = [np.NaN for x in range(len(df.index))]
         df['Final status'] = [0 for x in range(len(df.index))]
-        # if df.iloc[0, 5] == 1: 
-        #     df.iloc[0, 6] = df.iloc[0, 0]
-        # if df.iloc[1, 5] == 1: 
-        #     if df.iloc[0, 5] == 1: 
-        #         df.iloc[1, 6] = (df.iloc[0, 0] + df.iloc[1, 0]) / 2
-        #     else:
-        #         df.iloc[1, 6] = df.iloc[1, 0]
+ 
         i = 0
         while i<len(df.index):
             #calculate mean leak for max 3 adjacent "Hot" samples
@@ -213,6 +207,47 @@ class SteamIqToolSet():
         #print(f'{status_map}')
         return status_map
 
+    @staticmethod
+    def calculate_integral_values_using_sm(srs, status_map, use_green=False):
+        statuses_to_use=['3', '4']
+        if use_green:
+            statuses_to_use=['2', '3', '4']
+        integral = pd.Timedelta(0)
+        cumulative_time = pd.Timedelta(0)
+        for st in statuses_to_use:
+            for interval in status_map[st]:
+                    #print(f'{srs=}')
+                    #print(f'{interval=}')
+                    chunk = srs.loc[interval[0]:interval[1]]
+                    #print(f'{chunk=}')
+                    integral += np.trapz(chunk, x=chunk.index.astype('datetime64[s]'))
+                    #print(f'integral2={integral}')
+                    timedelta = chunk.index[-1]-chunk.index[0]
+                    cumulative_time += timedelta
+        if cumulative_time.total_seconds() == 0:
+            return None
+        return (integral, cumulative_time)
+
+    @staticmethod
+    def transf_percent_leak_srs_to_kgh(perc_srs, pres, orif_d):
+        def leakage(perc):
+            '''Returns kg/h of leakage taking % of leak rate from SteamIQ'''
+            return perc*47.12*(orif_d/25.4)*(orif_d/25.4)*math.pow(pres*14.50377+14.7, 0.97)*0.7*0.36*0.45359/100.0
+        
+        transf_srs = perc_srs.apply(leakage)
+        return transf_srs
+    
+    @staticmethod
+    def transf_percent_leak_srs_to_kW(perc_srs, pres, orif_d, eff):
+        def leakage(perc):
+            '''Returns kW of leakage based on hfg taking % of leak rate from SteamIQ
+            If it is necessary to express it in kW of fuel, then it is necessary to divide this value to efficiency (usually ~0.8)
+            '''
+            return perc*47.12*(orif_d/25.4)*(orif_d/25.4)*math.pow(pres*14.50377+14.7, 0.97)*0.7*0.36*0.45359/100.0 * 2100.0/3600.0 / (eff/100.0)
+            #!!!!!!!!!add more precise formula instead of 2100.0/3600.0 
+        
+        transf_srs = perc_srs.apply(leakage)
+        return transf_srs
 
 
 if __name__ == '__main__':
