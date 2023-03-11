@@ -114,7 +114,7 @@ class SteamIqToolSet():
             divider = 0
             while j>=i-2 and j>=0:
                 if df.iloc[j, 5]==1: 
-                    sum += df.iloc[j, 0]
+                    sum += df.iloc[j, 1]
                     divider += 1
                 else:
                     break

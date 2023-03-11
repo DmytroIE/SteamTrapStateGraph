@@ -143,11 +143,20 @@ class SteamIqCsvFileArea(CsvFileArea):
                                  dtype={self._leak_col_name:'float64', self._cycle_col_name: 'float64'},
                                  parse_dates=[date_col_name], 
                                  index_col=date_col_name)
-        
+        # print('raw data')
+        # print(data)
         self._data = SteamIqToolSet.fill_data_gaps_with_nans(data)
+        # print('after filling gaps')
+        # print(self._data)
         SteamIqToolSet.set_sample_statuses(self._data)
+        # print('after statuses')
+        # print(self._data)
         SteamIqToolSet.set_averaged_sample_statuses(self._data)
+        # print('after average statuses')
+        # print(self._data)
         SteamIqToolSet.set_final_statuses(self._data)
+        # print('rafter final statuses')
+        # print(self._data)
 
         #self._file_name = get_file_name_from_path(path)
 
@@ -173,11 +182,11 @@ class SteamIqCsvFileArea(CsvFileArea):
 
         try:
             self._plt.grid(True)
-            text_representation = []
-            #axs.locator_params(nbins=3)
 
             fsts = extract_series_from_df(self._data, plot_from, plot_to, 'Final status')
             status_map = SteamIqToolSet.prepare_status_map(fsts)
+            
+            leak_unit = '%'
 
             if self._what_to_print == 'Activity map':
                 if self._cbx_add_leak_graph.isChecked():
@@ -186,6 +195,8 @@ class SteamIqCsvFileArea(CsvFileArea):
                     color = line_colors_map[self._cmb_leak_graph_color.currentText()]
                     srs.plot(ax = axs, color=color)
                     axs.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
+
+                    self._txt_csv_view.setText(str(srs))
 
                 for item in status_map['0']:
                     axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Offline], alpha=0.8)
@@ -198,6 +209,7 @@ class SteamIqCsvFileArea(CsvFileArea):
                 for item in status_map['4']:
                     axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.High], alpha=0.8)
 
+                
 
             elif self._what_to_print == 'Leak graph':
                 if self._cbx_amap_in_bg.isChecked():
@@ -236,12 +248,12 @@ class SteamIqCsvFileArea(CsvFileArea):
                     integral, cum_time = SteamIqToolSet.calculate_integral_values_using_sm(srs, status_map, use_green_zone)
 
                     self._txt_csv_view.setText(f'{integral=}\n{cum_time=}\nmean integral={integral/cum_time}\n{leak_unit}*hour={integral.total_seconds()/3600}')
+                axs.set_ylabel(self._ltx_y_label.text()+', '+leak_unit)
 
             axs.set_xticks([plot_from, plot_to])
             axs.set_xticklabels([plot_from.strftime('%Y/%m/%d'), plot_to.strftime('%Y/%m/%d')], rotation=0, ha='center')
             axs.set_title(self._ltx_plot_title.text())
-            axs.set_ylabel(self._ltx_y_label.text()+', '+leak_unit)
-
+            axs.set(xlabel=None)
             axs.set_ylim([self._spb_y_axis_from.value(), self._spb_y_axis_to.value()])
             
             
