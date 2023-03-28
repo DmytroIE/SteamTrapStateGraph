@@ -1,6 +1,7 @@
 import sys
 
 from PySide6 import QtWidgets
+from PySide6.QtCore import QLocale
 
 from src.MainWidget import MainWidget
 
@@ -8,6 +9,7 @@ from src.MainWidget import MainWidget
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, **kwargs):
+        QLocale.setDefault(QLocale('en'))
         QtWidgets.QMainWindow.__init__(self)
         self.setWindowTitle('Steam trap data analyser')
         self.setGeometry(0, 0, 960, 780)

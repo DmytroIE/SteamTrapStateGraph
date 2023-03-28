@@ -247,7 +247,9 @@ class SteamIqCsvFileArea(CsvFileArea):
                 if self._cbx_calc_integral.isChecked():
                     integral, cum_time = SteamIqToolSet.calculate_integral_values_using_sm(srs, status_map, use_green_zone)
 
-                    self._txt_csv_view.setText(f'{integral=}\n{cum_time=}\nmean integral={integral/cum_time}\n{leak_unit}*hour={integral.total_seconds()/3600}')
+                    self._txt_csv_view.setText(f'{integral=}\n{cum_time=}\n'
+                                               f'mean integral value for active time={integral/cum_time}\n'
+                                               f'{leak_unit}*hour={integral.total_seconds()/3600}')
                 axs.set_ylabel(self._ltx_y_label.text()+', '+leak_unit)
 
             axs.set_xticks([plot_from, plot_to])

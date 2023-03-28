@@ -114,7 +114,7 @@ class SteamIqToolSet():
             divider = 0
             while j>=i-2 and j>=0:
                 if df.iloc[j, 5]==1: 
-                    sum += df.iloc[j, 1]
+                    sum += df.iloc[j, 0]
                     divider += 1
                 else:
                     break
@@ -216,12 +216,11 @@ class SteamIqToolSet():
         cumulative_time = pd.Timedelta(0)
         for st in statuses_to_use:
             for interval in status_map[st]:
-                    #print(f'{srs=}')
-                    #print(f'{interval=}')
                     chunk = srs.loc[interval[0]:interval[1]]
-                    #print(f'{chunk=}')
                     integral += np.trapz(chunk, x=chunk.index.astype('datetime64[s]'))
-                    #print(f'integral2={integral}')
+        for st in ['2', '3', '4']:
+            for interval in status_map[st]:
+                    chunk = srs.loc[interval[0]:interval[1]]
                     timedelta = chunk.index[-1]-chunk.index[0]
                     cumulative_time += timedelta
         if cumulative_time.total_seconds() == 0:
