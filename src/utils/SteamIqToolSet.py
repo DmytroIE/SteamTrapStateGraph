@@ -105,35 +105,50 @@ class SteamIqToolSet():
     def set_final_statuses(df):
         df['Aver leak'] = [np.NaN for x in range(len(df.index))]
         df['Final status'] = [0 for x in range(len(df.index))]
- 
-        i = 0
-        while i<len(df.index):
-            #calculate mean leak for max 3 adjacent "Hot" samples
-            j = i
-            sum = 0
-            divider = 0
-            while j>=i-2 and j>=0:
-                if df.iloc[j, 5]==1: 
-                    sum += df.iloc[j, 0]
-                    divider += 1
+        
+        def set_status(df, idx):
+            if df.iloc[idx, 5]==1:
+                if df.iloc[idx, 6]<=DEF_THRESHOLD_FOR_GOOD:
+                    df.iloc[idx, 7] = 2 #low intensive
+                elif df.iloc[idx, 6]<=DEF_THRESHOLD_FOR_AVERAGE:
+                    df.iloc[idx, 7] = 3 #mid intensive
                 else:
-                    break
-                j -= 1
-            if divider!=0:
-                df.iloc[i, 6] = sum/divider
-            # final statuses
-            if df.iloc[i, 5]==1:
-                if df.iloc[i, 6]<=DEF_THRESHOLD_FOR_GOOD:
-                    df.iloc[i, 7] = 2 #low intensive
-                elif df.iloc[i, 6]<=DEF_THRESHOLD_FOR_AVERAGE:
-                    df.iloc[i, 7] = 3 #mid intensive
-                else:
-                    df.iloc[i, 7] = 4 #high intensive
-            elif df.iloc[i, 5]==0:
-                df.iloc[i, 6] = 0.0
-                df.iloc[i, 7] = 1 #cold
+                    df.iloc[idx, 7] = 4 #high intensive
+            elif df.iloc[idx, 5]==0:
+                df.iloc[idx, 6] = 0.0
+                df.iloc[idx, 7] = 1 #cold
             else:
-                df.iloc[i, 7] = 0 #offline
+                df.iloc[idx, 7] = 0 #offline
+ 
+        #first point
+        if df.iloc[0, 5]==1:
+            df.iloc[0, 6] = df.iloc[0, 0]
+            if df.iloc[1, 5]==1:
+                df.iloc[0, 6] = (df.iloc[0, 6] + df.iloc[1, 0]) / 2
+        set_status(df, 0)
+        #last point
+        idx_of_last_point = len(df.index) - 1
+        if df.iloc[idx_of_last_point, 5]==1:
+            df.iloc[idx_of_last_point, 6] = df.iloc[idx_of_last_point, 0]
+            if df.iloc[idx_of_last_point-1, 5]==1:
+                df.iloc[idx_of_last_point, 6] = (df.iloc[idx_of_last_point-1, 0] + df.iloc[idx_of_last_point, 6]) / 2
+        set_status(df, idx_of_last_point)
+ 
+        i = 1
+        divider = 1
+        while i < idx_of_last_point:
+            #calculate mean leak for max 3 adjacent "Hot" samples - centered around the point
+            if df.iloc[i, 5]==1:
+                divider = 1
+                df.iloc[i, 6] = df.iloc[i, 0]
+                if df.iloc[i+1, 5]==1:
+                    df.iloc[i, 6] = df.iloc[i, 6] + df.iloc[i+1, 0]
+                    divider += 1
+                if df.iloc[i-1, 5]==1:
+                    df.iloc[i, 6] = df.iloc[i, 6] + df.iloc[i-1, 0]
+                    divider += 1
+                df.iloc[i, 6] = df.iloc[i, 6] / divider    
+            set_status(df, i)
 
             i += 1
             
@@ -218,7 +233,7 @@ class SteamIqToolSet():
             for interval in status_map[st]:
                     chunk = srs.loc[interval[0]:interval[1]]
                     integral += np.trapz(chunk, x=chunk.index.astype('datetime64[s]'))
-        for st in ['2', '3', '4']:
+        for st in statuses_to_use:
             for interval in status_map[st]:
                     chunk = srs.loc[interval[0]:interval[1]]
                     timedelta = chunk.index[-1]-chunk.index[0]
