@@ -120,18 +120,21 @@ class SteamIqToolSet():
             else:
                 df.iloc[idx, 7] = 0 #offline
  
+        # cycle_col_idx = df.columns.get_loc('Cycle Counts')
+        leak_col_idx = df.columns.get_loc('Leak')
+
         #first point
         if df.iloc[0, 5]==1:
-            df.iloc[0, 6] = df.iloc[0, 0]
+            df.iloc[0, 6] = df.iloc[0, leak_col_idx]
             if df.iloc[1, 5]==1:
-                df.iloc[0, 6] = (df.iloc[0, 6] + df.iloc[1, 0]) / 2
+                df.iloc[0, 6] = (df.iloc[0, 6] + df.iloc[1, leak_col_idx]) / 2
         set_status(df, 0)
         #last point
         idx_of_last_point = len(df.index) - 1
         if df.iloc[idx_of_last_point, 5]==1:
-            df.iloc[idx_of_last_point, 6] = df.iloc[idx_of_last_point, 0]
+            df.iloc[idx_of_last_point, 6] = df.iloc[idx_of_last_point, leak_col_idx]
             if df.iloc[idx_of_last_point-1, 5]==1:
-                df.iloc[idx_of_last_point, 6] = (df.iloc[idx_of_last_point-1, 0] + df.iloc[idx_of_last_point, 6]) / 2
+                df.iloc[idx_of_last_point, 6] = (df.iloc[idx_of_last_point-1, leak_col_idx] + df.iloc[idx_of_last_point, 6]) / 2
         set_status(df, idx_of_last_point)
  
         i = 1
@@ -140,12 +143,12 @@ class SteamIqToolSet():
             #calculate mean leak for max 3 adjacent "Hot" samples - centered around the point
             if df.iloc[i, 5]==1:
                 divider = 1
-                df.iloc[i, 6] = df.iloc[i, 0]
+                df.iloc[i, 6] = df.iloc[i, leak_col_idx]
                 if df.iloc[i+1, 5]==1:
-                    df.iloc[i, 6] = df.iloc[i, 6] + df.iloc[i+1, 0]
+                    df.iloc[i, 6] = df.iloc[i, 6] + df.iloc[i+1, leak_col_idx]
                     divider += 1
                 if df.iloc[i-1, 5]==1:
-                    df.iloc[i, 6] = df.iloc[i, 6] + df.iloc[i-1, 0]
+                    df.iloc[i, 6] = df.iloc[i, 6] + df.iloc[i-1, leak_col_idx]
                     divider += 1
                 df.iloc[i, 6] = df.iloc[i, 6] / divider    
             set_status(df, i)

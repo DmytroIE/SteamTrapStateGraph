@@ -136,7 +136,7 @@ class SteamIqCsvFileArea(CsvFileArea):
         self._leak_col_name = params['leak_col_name']
         self._cycle_col_name = params['cycle_col_name']
             
-        data = pd.read_csv(path, 
+        self._data = pd.read_csv(path, 
                                  sep=col_sep, 
                                  header=0, 
                                  usecols=[date_col_name, self._leak_col_name, self._cycle_col_name],
@@ -144,8 +144,12 @@ class SteamIqCsvFileArea(CsvFileArea):
                                  parse_dates=[date_col_name], 
                                  index_col=date_col_name)
         # print('raw data')
-        # print(data)
-        self._data = SteamIqToolSet.fill_data_gaps_with_nans(data)
+        # print(self._data)
+
+        # Just in case if initially columns have different from 'Leak' and 'Cycle Counts' names
+        self._data.rename(columns={self._leak_col_name: 'Leak', self._cycle_col_name: 'Cycle Counts'}, inplace=True)
+        
+        self._data = SteamIqToolSet.fill_data_gaps_with_nans(self._data)
         # print('after filling gaps')
         # print(self._data)
         SteamIqToolSet.set_sample_statuses(self._data)
@@ -196,7 +200,7 @@ class SteamIqCsvFileArea(CsvFileArea):
                     srs.plot(ax = axs, color=color)
                     axs.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
 
-                    self._txt_csv_view.setText(str(srs))
+                    self._txt_csv_view.setText(str(srs.head(50)))#str(srs))
 
                 for item in status_map['0']:
                     axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.Offline], alpha=0.8)

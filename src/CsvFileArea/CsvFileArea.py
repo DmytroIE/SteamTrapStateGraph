@@ -48,7 +48,7 @@ class CsvFileArea(QtWidgets.QWidget):
     def _create_ui(self):
         #-Data text representation window-----------------------------
         self._txt_csv_view = QtWidgets.QTextBrowser()
-        self._txt_csv_view.setText(str(self._data))
+        self._txt_csv_view.setText(str(self._data.head(50)))
         #-Draw options-----------------------------
         gbx_options = QtWidgets.QGroupBox()
         gbx_options.setTitle('Draw options')
