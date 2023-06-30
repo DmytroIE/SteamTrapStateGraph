@@ -245,11 +245,19 @@ class SteamIqCsvFileArea(CsvFileArea):
                 axs.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
 
                 if self._cbx_calc_integral.isChecked():
-                    integral, cum_time = SteamIqToolSet.calculate_integral_values_using_sm(srs, status_map, use_green_zone)
-
-                    self._txt_csv_view.setText(f'{integral=}\n{cum_time=}\n'
-                                               f'mean integral value for active time={integral/cum_time}\n'
-                                               f'{leak_unit}*hour={integral.total_seconds()/3600}')
+                    result = SteamIqToolSet.calculate_integral_values_using_sm(srs, status_map, use_green_zone)
+                    is_green_zone_label = ''
+                    if use_green_zone:
+                        is_green_zone_label = '2,'
+                    if result:
+                        integral, cum_time = result
+                        self._txt_csv_view.setText(f'{integral=}\n{cum_time=}\n'
+                                               f'mean integral value for statuses {is_green_zone_label} 3 and 4 = {integral/cum_time}\n'
+                                               f'{leak_unit}*hour = {integral.total_seconds()/3600}')
+                    else:
+                        self._txt_csv_view.setText(f'integral=0\ncum_time=0\n'
+                                               f'mean integral value for statuses {is_green_zone_label} 3 and 4 = 0\n'
+                                               f'{leak_unit}*hour = 0')
                 axs.set_ylabel(self._ltx_y_label.text()+', '+leak_unit)
 
             axs.set_xticks([plot_from, plot_to])
@@ -257,7 +265,7 @@ class SteamIqCsvFileArea(CsvFileArea):
             axs.set_title(self._ltx_plot_title.text())
             axs.set(xlabel=None)
             axs.set_ylim([self._spb_y_axis_from.value(), self._spb_y_axis_to.value()])
-            
+            GlobalCommunicator.change_status_line.emit(f'Graph {self._ltx_plot_title.text()} plotted')
             
 
         except Exception as error:
