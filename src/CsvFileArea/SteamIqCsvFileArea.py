@@ -52,14 +52,18 @@ class SteamIqCsvFileArea(CsvFileArea):
         self._ltx_y_label = QtWidgets.QLineEdit()
         self._ltx_y_label.setText('Leak')
         self._cbx_amap_in_bg = QtWidgets.QCheckBox('Map in bg')
-        #self._lbl_calc_integral = QtWidgets.QLabel('Calc integral')
-        self._cbx_calc_integral = QtWidgets.QCheckBox('Calc integral')
-        #self._lbl_calc_integral = QtWidgets.QLabel('Green zone')
+        ##self._lbl_calc_integral = QtWidgets.QLabel('Calc integral')
+        #self._cbx_calc_integral = QtWidgets.QCheckBox('Calc integral')
+        ##self._lbl_calc_integral = QtWidgets.QLabel('Green zone')
         self._cbx_use_green_zone = QtWidgets.QCheckBox('Green zone')
         self._lbl_leak_units = QtWidgets.QLabel('Units for leakage')
         self._cmb_leak_units = QtWidgets.QComboBox()
         self._cmb_leak_units.addItems(LeakUnits)
         self._cmb_leak_units.setCurrentText(LeakUnits.Mass)
+        self._lbl_co2factor = QtWidgets.QLabel('CO2 factor, kg/kWh')
+        self._ltx_co2factor = QtWidgets.QLineEdit('0.184')
+        self._ltx_co2factor.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
+
         self._lbl_pressure = QtWidgets.QLabel('Pres, barg')
         self._ltx_pressure = QtWidgets.QLineEdit('5.0')
         self._ltx_pressure.setValidator(QtGui.QDoubleValidator(0.0, 999.9, 1, notation=QtGui.QDoubleValidator.StandardNotation))
@@ -69,16 +73,23 @@ class SteamIqCsvFileArea(CsvFileArea):
         self._lbl_efficiency = QtWidgets.QLabel('Efficiency, %')
         self._ltx_efficiency = QtWidgets.QLineEdit('80.0')
         self._ltx_efficiency.setValidator(QtGui.QDoubleValidator(0.0, 100.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
+        self._lbl_entalpy = QtWidgets.QLabel('Entalpy, kJ/kg')
+        self._ltx_entalpy = QtWidgets.QLineEdit('2700.0')
+        self._ltx_entalpy.setValidator(QtGui.QDoubleValidator(0.0, 2800.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
 
         self._lyt_plot_leak_graph = QtWidgets.QVBoxLayout(self._gbx_plot_leak_graph)
         self._lyt_plot_leak_graph_one = QtWidgets.QHBoxLayout()
         self._lyt_plot_leak_graph_one.addWidget(self._lbl_y_label)
         self._lyt_plot_leak_graph_one.addWidget(self._ltx_y_label)
         self._lyt_plot_leak_graph_one.addWidget(self._cbx_amap_in_bg)
-        self._lyt_plot_leak_graph_one.addWidget(self._cbx_calc_integral)
+        #self._lyt_plot_leak_graph_one.addWidget(self._cbx_calc_integral)
         self._lyt_plot_leak_graph_one.addWidget(self._cbx_use_green_zone )
         self._lyt_plot_leak_graph_one.addWidget(self._lbl_leak_units)
         self._lyt_plot_leak_graph_one.addWidget(self._cmb_leak_units)
+        self._lyt_plot_leak_graph_one.addWidget(self._lbl_co2factor)
+        self._lyt_plot_leak_graph_one.addWidget(self._ltx_co2factor)
+
+
         self._lyt_plot_leak_graph_two = QtWidgets.QHBoxLayout()
         self._lyt_plot_leak_graph_two.addWidget(self._lbl_pressure)
         self._lyt_plot_leak_graph_two.addWidget(self._ltx_pressure)
@@ -86,6 +97,8 @@ class SteamIqCsvFileArea(CsvFileArea):
         self._lyt_plot_leak_graph_two.addWidget(self._ltx_orifice_diam)
         self._lyt_plot_leak_graph_two.addWidget(self._lbl_efficiency)
         self._lyt_plot_leak_graph_two.addWidget(self._ltx_efficiency)
+        self._lyt_plot_leak_graph_two.addWidget(self._lbl_entalpy)
+        self._lyt_plot_leak_graph_two.addWidget(self._ltx_entalpy)
 
 
         self._lyt_plot_leak_graph.addLayout(self._lyt_plot_leak_graph_one)
@@ -228,42 +241,65 @@ class SteamIqCsvFileArea(CsvFileArea):
                     for item in status_map['4']:
                         axs.axvspan(item[0].to_pydatetime(), item[1].to_pydatetime(), 0, 1, facecolor=status_colors_map[StatusColors.High], alpha=0.3)
 
-
-                srs = extract_series_from_df(self._data, plot_from, plot_to, 'Aver leak')
-                leak_unit = '%'
+                srs_perc = extract_series_from_df(self._data, plot_from, plot_to, 'Aver leak')
+                     
                 use_green_zone = self._cbx_use_green_zone.isChecked()
                 pres = float(self._ltx_pressure.text())
                 orif_d = float(self._ltx_orifice_diam.text())
                 eff = float(self._ltx_efficiency.text())
+                entalpy = float(self._ltx_entalpy.text())
+                co2factor = float(self._ltx_co2factor.text())
+                co2emission =  0                  
 
+                # Integral calc
+                result_string = ''
+
+                srs_kw = SteamIqToolSet.transf_percent_leak_srs_to_kW(srs_perc, pres, orif_d, eff, entalpy)
+                result_kwh = SteamIqToolSet.calculate_integral_values_using_sm(srs_kw, status_map, use_green_zone)
+                is_green_zone_label = ''
+                if use_green_zone:
+                    is_green_zone_label = '2,'
+                if result_kwh:
+                    integral, cum_time = result_kwh
+                    result_string += (f'{integral=}\n{cum_time=}\n'
+                                       f'mean integral value, kW, for statuses {is_green_zone_label} 3 and 4 = {integral/cum_time}\n'
+                                       f'kW*hour = {integral.total_seconds()/3600}\n'
+                                       f'CO2 emission, kg = {integral.total_seconds()/3600*co2factor}\n\n')
+                else:
+                    result_string += (f'integral=0\ncum_time=0\n'
+                                       f'mean integral value, kW for statuses {is_green_zone_label} 3 and 4 = 0\n'
+                                       f'kW*hour = 0\n')
+                srs_kg = SteamIqToolSet.transf_percent_leak_srs_to_kgh(srs_perc, pres, orif_d)
+                result_kg = SteamIqToolSet.calculate_integral_values_using_sm(srs_kg, status_map, use_green_zone)
+                is_green_zone_label = ''
+                if use_green_zone:
+                    is_green_zone_label = '2,'
+                if result_kg:
+                    integral, cum_time = result_kg
+                    result_string += (f'{integral=}\n{cum_time=}\n'
+                                f'mean integral value, kg/h, for statuses {is_green_zone_label} 3 and 4 = {integral/cum_time}\n'
+                                f'kg/h*hour = {integral.total_seconds()/3600}\n')
+                else:
+                    result_string += (f'integral=0\ncum_time=0\n'
+                                       f'mean integral value, kg/h, for statuses {is_green_zone_label} 3 and 4 = 0\n'
+                                       f'kg/h*hour = 0\n')
+
+                self._txt_csv_view.setText(result_string)
+
+                leak_unit = '%' 
+                srs_to_plot = srs_perc
                 if self._cmb_leak_units.currentText()==LeakUnits.Mass:
-                    srs = SteamIqToolSet.transf_percent_leak_srs_to_kgh(srs, pres, orif_d)
                     leak_unit = 'kg/h'
-                
+                    srs_to_plot = srs_kg
                 elif self._cmb_leak_units.currentText()==LeakUnits.Energy:
-                    srs = SteamIqToolSet.transf_percent_leak_srs_to_kW(srs, pres, orif_d, eff)
                     leak_unit = 'kW'
+                    srs_to_plot = srs_kw
 
                 color = line_colors_map[self._cmb_leak_graph_color.currentText()]
-                srs.plot(ax = axs, color=color)
-                axs.fill_between(srs.index, y1=srs, alpha=0.4, color=color, linewidth=2)
+                srs_to_plot.plot(ax = axs, color=color)
+                axs.fill_between(srs_to_plot.index, y1=srs_to_plot, alpha=0.4, color=color, linewidth=2)
 
-                if self._cbx_calc_integral.isChecked():
-                    result = SteamIqToolSet.calculate_integral_values_using_sm(srs, status_map, use_green_zone)
-                    is_green_zone_label = ''
-                    if use_green_zone:
-                        is_green_zone_label = '2,'
-                    if result:
-                        integral, cum_time = result
-                        self._txt_csv_view.setText(f'{integral=}\n{cum_time=}\n'
-                                               f'mean integral value for statuses {is_green_zone_label} 3 and 4 = {integral/cum_time}\n'
-                                               f'{leak_unit}*hour = {integral.total_seconds()/3600}')
-                    else:
-                        self._txt_csv_view.setText(f'integral=0\ncum_time=0\n'
-                                               f'mean integral value for statuses {is_green_zone_label} 3 and 4 = 0\n'
-                                               f'{leak_unit}*hour = 0')
                 axs.set_ylabel(self._ltx_y_label.text()+', '+leak_unit)
-
             axs.set_xticks([plot_from, plot_to])
             axs.set_xticklabels([plot_from.strftime('%Y/%m/%d'), plot_to.strftime('%Y/%m/%d')], rotation=0, ha='center')
             axs.set_title(self._ltx_plot_title.text())

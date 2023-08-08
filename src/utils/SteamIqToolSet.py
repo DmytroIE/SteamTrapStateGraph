@@ -255,12 +255,12 @@ class SteamIqToolSet():
         return transf_srs
     
     @staticmethod
-    def transf_percent_leak_srs_to_kW(perc_srs, pres, orif_d, eff):
+    def transf_percent_leak_srs_to_kW(perc_srs, pres, orif_d, eff, entalpy):
         def leakage(perc):
             '''Returns kW of leakage based on hfg taking % of leak rate from SteamIQ
             If it is necessary to express it in kW of fuel, then it is necessary to divide this value to efficiency (usually ~0.8)
             '''
-            return perc*47.12*(orif_d/25.4)*(orif_d/25.4)*math.pow(pres*14.50377+14.7, 0.97)*0.7*0.36*0.45359/100.0 * 2100.0/3600.0 / (eff/100.0)
+            return perc*47.12*(orif_d/25.4)*(orif_d/25.4)*math.pow(pres*14.50377+14.7, 0.97)*0.7*0.36*0.45359/100.0 * entalpy/3600.0 / (eff/100.0)
             #!!!!!!!!!add more precise formula instead of 2100.0/3600.0 
         
         transf_srs = perc_srs.apply(leakage)
