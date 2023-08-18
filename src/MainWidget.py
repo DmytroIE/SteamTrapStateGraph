@@ -25,13 +25,14 @@ class MainWidget(QtWidgets.QWidget):
         self._lyt_main = QtWidgets.QVBoxLayout(self)
         self._create_ui()
 
-        self._csv_file_tabs = []
-        self._open_csv_files = []
+        self._csv_file_tabs = [None] # None is needed for the first tab which is not removable
+        self._open_csv_files = [None]
+        self._last_path = '/home'
 
     @QtCore.Slot()
     def load_csv_file(self):
         file_name = get_file_name_from_path(self._csv_file_path)
-
+        
         if self._csv_file_path in self._open_csv_files:
             GlobalCommunicator.change_status_line.emit(f'File {file_name} is already open')
             return
@@ -56,14 +57,15 @@ class MainWidget(QtWidgets.QWidget):
     
     @QtCore.Slot()
     def preview_csv_file(self):
-        self._csv_file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', "/home", 'CSV files (*.csv);;All files (*)')
+        self._csv_file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self._last_path, 'CSV files (*.csv);;All files (*)')
         if not self._csv_file_path:
             return
         
         file_name = get_file_name_from_path(self._csv_file_path)
+        self._last_path = self._csv_file_path
         
         try:
-            csv_preview = ''
+            csv_preview = f'File: {self._csv_file_path}\n\n'
             number_of_lines = 0
             
             with open(self._csv_file_path, "r") as csvFile:
@@ -87,6 +89,8 @@ class MainWidget(QtWidgets.QWidget):
     def _create_ui(self):
         
         self._tab_main = QtWidgets.QTabWidget()
+        self._tab_main.setTabsClosable(True)
+        self._tab_main.tabCloseRequested.connect(self._closeTab)
         
         #--------Tab content--------------------
         self._btn_csv_preview = QtWidgets.QPushButton('Preview CSV file')
@@ -140,6 +144,16 @@ class MainWidget(QtWidgets.QWidget):
             case _:
                 self._wdg_import_options = QtWidgets.QPushButton('Temp button')
                 self._lyt_tab_content.addWidget(self._wdg_import_options)
+    
+    def _closeTab(self, currentIndex):
+        if currentIndex == 0:
+            return
+        currentQWidget = self._tab_main.widget(currentIndex)
+        currentQWidget.deleteLater()
+        self._tab_main.removeTab(currentIndex)
+        del self._csv_file_tabs[currentIndex]
+        del self._open_csv_files[currentIndex]
+
 
                 
         

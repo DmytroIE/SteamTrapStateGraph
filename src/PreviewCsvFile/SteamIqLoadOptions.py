@@ -1,4 +1,5 @@
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
+from src.utils.settings import ResampleUnits
 
 
 class SteamIqLoadOptions(QtWidgets.QWidget):
@@ -22,6 +23,12 @@ class SteamIqLoadOptions(QtWidgets.QWidget):
         self._cmb_col_sep = QtWidgets.QComboBox()
         self._cmb_col_sep.addItems([';', ':', 'Tab', ','])
 
+        self._lbl_resample = QtWidgets.QLabel('Resample')
+        self._ltx_resample_value = QtWidgets.QLineEdit('1')
+        self._ltx_resample_value.setValidator(QtGui.QIntValidator(1, 20))
+        self._cmb_resample_units = QtWidgets.QComboBox()
+        self._cmb_resample_units.addItems(ResampleUnits)
+
         self._lyt_main.addWidget(lbl_date_idx_col_name)
         self._lyt_main.addWidget(self._ltx_date_idx_col_name)
         self._lyt_main.addWidget(lbl_leak_col_name)
@@ -30,6 +37,9 @@ class SteamIqLoadOptions(QtWidgets.QWidget):
         self._lyt_main.addWidget(self._ltx_cycle_col_name)
         self._lyt_main.addWidget(lbl_col_sep)
         self._lyt_main.addWidget(self._cmb_col_sep)
+        self._lyt_main.addWidget(self._lbl_resample)
+        self._lyt_main.addWidget(self._ltx_resample_value)
+        self._lyt_main.addWidget(self._cmb_resample_units)
     
     def make_file_load_params(self):
         params = {}
@@ -37,6 +47,7 @@ class SteamIqLoadOptions(QtWidgets.QWidget):
         params['leak_col_name'] = self._ltx_leak_col_name.text()
         params['cycle_col_name'] = self._ltx_cycle_col_name.text()
         params['col_sep'] = self._cmb_col_sep.currentText()
+        params['resample_interval'] = self._ltx_resample_value.text() + self._cmb_resample_units.currentText()
         return params
 
     

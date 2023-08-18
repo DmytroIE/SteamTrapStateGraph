@@ -162,7 +162,8 @@ class SteamIqCsvFileArea(CsvFileArea):
         # Just in case if initially columns have different from 'Leak' and 'Cycle Counts' names
         self._data.rename(columns={self._leak_col_name: 'Leak', self._cycle_col_name: 'Cycle Counts'}, inplace=True)
         
-        self._data = SteamIqToolSet.fill_data_gaps_with_nans(self._data)
+        resample_interval = params['resample_interval']
+        self._data = SteamIqToolSet.fill_data_gaps_with_nans(self._data, resample_interval)
         # print('after filling gaps')
         # print(self._data)
         SteamIqToolSet.set_sample_statuses(self._data)

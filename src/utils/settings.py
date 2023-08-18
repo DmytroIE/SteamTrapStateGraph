@@ -15,6 +15,11 @@ class LeakUnits(str, Enum):
     Mass = 'Mass'
     Energy = 'Energy'
 
+class ResampleUnits(str, Enum):
+    Hours = 'H'
+    Days = 'D'
+    #Months = 'M'
+
 leak_units_symbol_map = {
     LeakUnits.Percent: '%*h',
     LeakUnits.Mass: 'kg',

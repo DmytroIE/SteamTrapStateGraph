@@ -250,6 +250,7 @@ class SteamIqToolSet():
         def leakage(perc):
             '''Returns kg/h of leakage taking % of leak rate from SteamIQ'''
             return perc*47.12*(orif_d/25.4)*(orif_d/25.4)*math.pow(pres*14.50377+14.7, 0.97)*0.7*0.36*0.45359/100.0
+            # 0.45359 is a conversion coefficient from lb to kg
         
         transf_srs = perc_srs.apply(leakage)
         return transf_srs
