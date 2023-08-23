@@ -162,6 +162,35 @@ def extract_series_from_df(df, from_, to, col_name):
         raise ValueError('Mismatch in the plot dates')
 
 
+ # add to plot function to create a stem diagram
+
+                # srs = extract_series_from_df(self._data, plot_from, plot_to, 'Aver leak')
+                # markerline, stemlines, baseline = self._plt.stem(
+                #     srs.index, srs, linefmt='white', markerfmt='None', bottom=-5.0)
+                # final_status_srs = extract_series_from_df(self._data, plot_from, plot_to, 'Final status')
+                # color_map = []
+                # for r in final_status_srs.values:
+                #     match r:
+                #         case 1:
+                #             color_map.append('cyan')
+                #         case 2:
+                #             color_map.append('green')
+                #         case 3:
+                #             color_map.append('orange')
+                #         case 4:
+                #             color_map.append('red')
+                #         case _:
+                #             color_map.append('white')
+                # stemlines.set(linewidth=0.5, color=color_map)
+                # # markerline.set_markerfacecolor('none')
+                # # print(f'{stemlines=}')
+                # # for line in stemlines:
+                #     #line.set(linewidth=10.0)
+                #     # print(f'{line=}')
+                #     # line.set_color('red')
+                #     # line.set_linewidth(10.0)
+                # return
+
 if __name__ == '__main__':
 
     index = pd.DatetimeIndex(['2014-07-04 12:01:33', 

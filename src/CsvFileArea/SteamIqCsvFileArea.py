@@ -12,38 +12,40 @@ from src.utils.settings import LineColors, AuxLineColors, StatusColors, line_col
 from src.utils.SteamIqToolSet import SteamIqToolSet
 
 from src.CsvFileArea.CsvFileArea import CsvFileArea
-from src.CsvFileArea.IndPlotSettings import IndPlotSettings
-from src.CsvFileArea.SteamIqPlotSettings import SteamIqPlotSettings
-from time import sleep
 
 
-class SteamIqDataProcessor(QObject):
+class WorkerSignals(QtCore.QObject):
     finished = Signal()
-    data_prepared = Signal(object)
+    error = Signal(object)
+    result = Signal(object)
 
+
+class SteamIqDataProcessor(QtCore.QRunnable):
     def __init__(self, path, params):
         super().__init__()
         self._path = path
         self._params = params
+        self.signals = WorkerSignals()
 
+    @QtCore.Slot()
     def run(self):
         data = None
         try:
-            # f = data['f'] # raise the error
+            # f = data['f']  # raise the error
             date_col_name = self._params['date_col_name']
             col_sep = self._params['col_sep']
             if col_sep == 'Tab':
-                col_sep = '\t' 
+                col_sep = '\t'
             leak_col_name = self._params['leak_col_name']
             cycle_col_name = self._params['cycle_col_name']
 
-            data = pd.read_csv(self._path, 
-                                     sep=col_sep, 
-                                     header=0, 
-                                     usecols=[date_col_name, leak_col_name, cycle_col_name],
-                                     dtype={leak_col_name:'float64', cycle_col_name: 'float64'},
-                                     parse_dates=[date_col_name], 
-                                     index_col=date_col_name)
+            data = pd.read_csv(self._path,
+                               sep=col_sep,
+                               header=0,
+                               usecols=[date_col_name, leak_col_name, cycle_col_name],
+                               dtype={leak_col_name: 'float64', cycle_col_name: 'float64'},
+                               parse_dates=[date_col_name],
+                               index_col=date_col_name)
 
             # Just in case if initially columns have different from 'Leak' and 'Cycle Counts' names
             data.rename(columns={leak_col_name: 'Leak', cycle_col_name: 'Cycle Counts'}, inplace=True)
@@ -54,16 +56,18 @@ class SteamIqDataProcessor(QObject):
             SteamIqToolSet.set_averaged_sample_statuses(data)
             SteamIqToolSet.set_final_statuses(data)
             QThread.sleep(1)
+            self.signals.result.emit(data)
         except Exception as error:
-            data = error
+            self.signals.error.emit(error)
         finally:
-            self.data_prepared.emit(data)
-            self.finished.emit()
+            self.signals.finished.emit()
 
 
 class SteamIqCsvFileArea(CsvFileArea):
     def __init__(self, plt):
         CsvFileArea.__init__(self, plt)
+        self._threadpool = QtCore.QThreadPool()
+        # print("Multithreading with maximum %d threads" % self._threadpool.maxThreadCount())
 
     def _fill_custom_area(self):
         
@@ -185,32 +189,25 @@ class SteamIqCsvFileArea(CsvFileArea):
     def _change_plot_opts(self, opt):
         self._what_to_print = opt
 
-        
     def _load_csv_file(self, path, params):
         self._file_name = get_file_name_from_path(path)
-        self.thread = QThread()
-        self.worker = SteamIqDataProcessor(path, params)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.data_prepared.connect(self._receive_data)
-        # Start the thread
-        self.thread.start()
+        worker = SteamIqDataProcessor(path, params)
+        worker.signals.result.connect(self._receive_data)
+        worker.signals.error.connect(self._receive_error)
+        # worker.signals.finished.connect(lambda: print('complete'))
+        self._threadpool.start(worker)
 
     def _receive_data(self, data):
-        if isinstance(data, Exception):
-            GlobalCommunicator.change_status_line.emit(f'File loading failed, {str(data)}')
-            GlobalCommunicator.load_successful.emit(False)
-        else:
-            GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
-            GlobalCommunicator.load_successful.emit(True)
-            self._data = data
-            self._create_ui()
+        GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
+        GlobalCommunicator.load_successful.emit(True)
+        self._data = data
+        self._create_ui()
+
+    def _receive_error(self, error):
+        GlobalCommunicator.change_status_line.emit(f'File loading failed, {str(error)}')
+        GlobalCommunicator.load_successful.emit(False)
 
     def _plot_graph(self):
-        #print(self._plt.get_fignums())
         if len(self._plt.get_fignums())<1:
             fig, axs = self._plt.subplots(figsize=(14, 1), layout='constrained')
         else:

@@ -142,7 +142,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def _change_status_line(self, new_text):
         self._wdg_status_line.setText(new_text)
-        print(f'_change_status_line, text = {new_text}')
+        # print(f'_change_status_line, text = {new_text}')
 
     def _change_import_optinons_wdg(self, text):
         if hasattr(self, '_wdg_import_options'):
