@@ -22,17 +22,8 @@ class CsvFileArea(QtWidgets.QWidget):
 
        
     def load_csv_file(self, path, params):
-        
-        try:
-            self._load_csv_file(path, params)
-            self._file_name = get_file_name_from_path(path)
-            self._create_ui()
-            GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
-            return True
-        except Exception as error:
-            self._data = None
-            GlobalCommunicator.change_status_line.emit(f'File loading failed, {error}')
-            return False
+        self._load_csv_file(path, params)
+
         
     @QtCore.Slot()
     def _plot(self):
@@ -49,6 +40,7 @@ class CsvFileArea(QtWidgets.QWidget):
         #-Data text representation window-----------------------------
         self._txt_csv_view = QtWidgets.QTextBrowser()
         self._txt_csv_view.setText(str(self._data.head(50)))
+
         #-Draw options-----------------------------
         gbx_options = QtWidgets.QGroupBox()
         gbx_options.setTitle('Draw options')
@@ -124,5 +116,6 @@ class CsvFileArea(QtWidgets.QWidget):
 
     def _fill_custom_area(self):
         raise NotImplementedError
+
 
 

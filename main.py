@@ -12,7 +12,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QLocale.setDefault(QLocale('en'))
         QtWidgets.QMainWindow.__init__(self)
         self.setWindowTitle('Steam trap data analyser')
-        self.setGeometry(0, 0, 960, 780)
+        self.setGeometry(0, 0, 640, 640)
 
         self._wdg_main = MainWidget()
         self.setCentralWidget(self._wdg_main)

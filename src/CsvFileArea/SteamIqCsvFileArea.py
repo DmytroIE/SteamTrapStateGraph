@@ -1,4 +1,5 @@
 from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6.QtCore import QObject, QThread, Signal
 import matplotlib.dates as mdates
 
 import pandas as pd
@@ -13,7 +14,51 @@ from src.utils.SteamIqToolSet import SteamIqToolSet
 from src.CsvFileArea.CsvFileArea import CsvFileArea
 from src.CsvFileArea.IndPlotSettings import IndPlotSettings
 from src.CsvFileArea.SteamIqPlotSettings import SteamIqPlotSettings
+from time import sleep
 
+
+class SteamIqDataProcessor(QObject):
+    finished = Signal()
+    data_prepared = Signal(object)
+
+    def __init__(self, path, params):
+        super().__init__()
+        self._path = path
+        self._params = params
+
+    def run(self):
+        data = None
+        try:
+            # f = data['f'] # raise the error
+            date_col_name = self._params['date_col_name']
+            col_sep = self._params['col_sep']
+            if col_sep == 'Tab':
+                col_sep = '\t' 
+            leak_col_name = self._params['leak_col_name']
+            cycle_col_name = self._params['cycle_col_name']
+
+            data = pd.read_csv(self._path, 
+                                     sep=col_sep, 
+                                     header=0, 
+                                     usecols=[date_col_name, leak_col_name, cycle_col_name],
+                                     dtype={leak_col_name:'float64', cycle_col_name: 'float64'},
+                                     parse_dates=[date_col_name], 
+                                     index_col=date_col_name)
+
+            # Just in case if initially columns have different from 'Leak' and 'Cycle Counts' names
+            data.rename(columns={leak_col_name: 'Leak', cycle_col_name: 'Cycle Counts'}, inplace=True)
+
+            resample_interval = self._params['resample_interval']
+            data = SteamIqToolSet.fill_data_gaps_with_nans(data, resample_interval)
+            SteamIqToolSet.set_sample_statuses(data)
+            SteamIqToolSet.set_averaged_sample_statuses(data)
+            SteamIqToolSet.set_final_statuses(data)
+            QThread.sleep(1)
+        except Exception as error:
+            data = error
+        finally:
+            self.data_prepared.emit(data)
+            self.finished.emit()
 
 
 class SteamIqCsvFileArea(CsvFileArea):
@@ -62,20 +107,20 @@ class SteamIqCsvFileArea(CsvFileArea):
         self._cmb_leak_units.setCurrentText(LeakUnits.Mass)
         self._lbl_co2factor = QtWidgets.QLabel('CO2 factor, kg/kWh')
         self._ltx_co2factor = QtWidgets.QLineEdit('0.184')
-        self._ltx_co2factor.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
+        self._ltx_co2factor.setValidator(QtGui.QDoubleValidator(0.0001, 1.0, 4, notation=QtGui.QDoubleValidator.StandardNotation))
 
         self._lbl_pressure = QtWidgets.QLabel('Pres, barg')
         self._ltx_pressure = QtWidgets.QLineEdit('5.0')
-        self._ltx_pressure.setValidator(QtGui.QDoubleValidator(0.0, 999.9, 1, notation=QtGui.QDoubleValidator.StandardNotation))
+        self._ltx_pressure.setValidator(QtGui.QDoubleValidator(0.1, 999.9, 1, notation=QtGui.QDoubleValidator.StandardNotation))
         self._lbl_orifice_diam = QtWidgets.QLabel('Orif diam, mm')
         self._ltx_orifice_diam = QtWidgets.QLineEdit('4.0')
-        self._ltx_orifice_diam.setValidator(QtGui.QDoubleValidator(0.0, 999.9, 1, notation=QtGui.QDoubleValidator.StandardNotation))
+        self._ltx_orifice_diam.setValidator(QtGui.QDoubleValidator(0.1, 999.9, 1, notation=QtGui.QDoubleValidator.StandardNotation))
         self._lbl_efficiency = QtWidgets.QLabel('Efficiency, %')
         self._ltx_efficiency = QtWidgets.QLineEdit('80.0')
-        self._ltx_efficiency.setValidator(QtGui.QDoubleValidator(0.0, 100.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
+        self._ltx_efficiency.setValidator(QtGui.QDoubleValidator(0.1, 100.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
         self._lbl_entalpy = QtWidgets.QLabel('Entalpy, kJ/kg')
         self._ltx_entalpy = QtWidgets.QLineEdit('2700.0')
-        self._ltx_entalpy.setValidator(QtGui.QDoubleValidator(0.0, 2800.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
+        self._ltx_entalpy.setValidator(QtGui.QDoubleValidator(0.1, 2800.0, 0, notation=QtGui.QDoubleValidator.StandardNotation))
 
         self._lyt_plot_leak_graph = QtWidgets.QVBoxLayout(self._gbx_plot_leak_graph)
         self._lyt_plot_leak_graph_one = QtWidgets.QHBoxLayout()
@@ -142,42 +187,27 @@ class SteamIqCsvFileArea(CsvFileArea):
 
         
     def _load_csv_file(self, path, params):
-        date_col_name = params['date_col_name']
-        col_sep = params['col_sep']
-        if col_sep == 'Tab':
-            col_sep = '\t' 
-        self._leak_col_name = params['leak_col_name']
-        self._cycle_col_name = params['cycle_col_name']
-            
-        self._data = pd.read_csv(path, 
-                                 sep=col_sep, 
-                                 header=0, 
-                                 usecols=[date_col_name, self._leak_col_name, self._cycle_col_name],
-                                 dtype={self._leak_col_name:'float64', self._cycle_col_name: 'float64'},
-                                 parse_dates=[date_col_name], 
-                                 index_col=date_col_name)
-        # print('raw data')
-        # print(self._data)
+        self._file_name = get_file_name_from_path(path)
+        self.thread = QThread()
+        self.worker = SteamIqDataProcessor(path, params)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.data_prepared.connect(self._receive_data)
+        # Start the thread
+        self.thread.start()
 
-        # Just in case if initially columns have different from 'Leak' and 'Cycle Counts' names
-        self._data.rename(columns={self._leak_col_name: 'Leak', self._cycle_col_name: 'Cycle Counts'}, inplace=True)
-        
-        resample_interval = params['resample_interval']
-        self._data = SteamIqToolSet.fill_data_gaps_with_nans(self._data, resample_interval)
-        # print('after filling gaps')
-        # print(self._data)
-        SteamIqToolSet.set_sample_statuses(self._data)
-        # print('after statuses')
-        # print(self._data)
-        SteamIqToolSet.set_averaged_sample_statuses(self._data)
-        # print('after average statuses')
-        # print(self._data)
-        SteamIqToolSet.set_final_statuses(self._data)
-        # print('rafter final statuses')
-        # print(self._data)
-
-        #self._file_name = get_file_name_from_path(path)
-
+    def _receive_data(self, data):
+        if isinstance(data, Exception):
+            GlobalCommunicator.change_status_line.emit(f'File loading failed, {str(data)}')
+            GlobalCommunicator.load_successful.emit(False)
+        else:
+            GlobalCommunicator.change_status_line.emit(f'File {self._file_name} loaded')
+            GlobalCommunicator.load_successful.emit(True)
+            self._data = data
+            self._create_ui()
 
     def _plot_graph(self):
         #print(self._plt.get_fignums())

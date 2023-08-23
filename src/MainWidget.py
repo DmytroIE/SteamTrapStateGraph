@@ -28,6 +28,8 @@ class MainWidget(QtWidgets.QWidget):
         self._csv_file_tabs = [None] # None is needed for the first tab which is not removable
         self._open_csv_files = [None]
         self._last_path = '/home'
+        self.__new_tab = None
+        GlobalCommunicator.load_successful.connect(self.check_file_loaded_successfully)
 
     @QtCore.Slot()
     def load_csv_file(self):
@@ -39,21 +41,25 @@ class MainWidget(QtWidgets.QWidget):
         
         match self._cmb_csv_source.currentText():
             case CsvFileSources.SteamIQ:
-                new_area = SteamIqCsvFileArea(plt)
+                self.__new_tab = SteamIqCsvFileArea(plt)
             case _:
                 GlobalCommunicator.change_status_line.emit(f'No template for such source')
                 return
             
         GlobalCommunicator.change_status_line.emit(f'Processing {file_name}...')
         params = self._wdg_import_options.make_file_load_params()
-        success = new_area.load_csv_file(self._csv_file_path, params)
+        self.__new_tab.load_csv_file(self._csv_file_path, params)
+        
+    @QtCore.Slot()
+    def check_file_loaded_successfully(self, success):
+        file_name = get_file_name_from_path(self._csv_file_path)
         if success:
-            self._csv_file_tabs.append(new_area)
+            self._csv_file_tabs.append(self.__new_tab)
             self._open_csv_files.append(self._csv_file_path)
-            self._tab_main.addTab(new_area, file_name)
-            
-        else:
-            del new_area
+            if len(file_name) > 15:
+                file_name = file_name[0:15]+'...'
+            self._tab_main.addTab(self.__new_tab, file_name)
+        self.__new_tab = None
     
     @QtCore.Slot()
     def preview_csv_file(self):
@@ -131,7 +137,12 @@ class MainWidget(QtWidgets.QWidget):
 
         self._wdg_status_line = QtWidgets.QLabel('Status')
         self._lyt_main.addWidget(self._wdg_status_line)
-        GlobalCommunicator.change_status_line.connect(self._wdg_status_line.setText)
+        GlobalCommunicator.change_status_line.connect(self._change_status_line)
+    
+    @QtCore.Slot()
+    def _change_status_line(self, new_text):
+        self._wdg_status_line.setText(new_text)
+        print(f'_change_status_line, text = {new_text}')
 
     def _change_import_optinons_wdg(self, text):
         if hasattr(self, '_wdg_import_options'):
